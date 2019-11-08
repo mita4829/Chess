@@ -22,5 +22,6 @@ struct PlayingState {
 UInt64 PiecesPawnMove(Pieces*, Pieces*);
 UInt64 PiecesKnightMove(Pieces*, Pieces*);
 UInt64 PiecesRookMove(Pieces*, Pieces*);
+UInt64 PiecesBishopMove(Pieces*, Pieces*);
 
 #endif // PIECES_HPP
