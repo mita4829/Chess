@@ -8,7 +8,7 @@
                        pieces->King    )
 
 #define Intersect(A, B) ((A) & (~(B)))
-#define RookColEx(X) (((RANK_8 & X) >> 56) | \
+#define ColEx(X) (((RANK_8 & X) >> 56) | \
                     ((RANK_7 & X) >> 48) | \
                     ((RANK_6 & X) >> 40) | \
                     ((RANK_5 & X) >> 32) | \
@@ -37,12 +37,12 @@ UInt64 MostSigBit(UInt64 value)
     return msb;
 }
 
-inline UInt64 RookRow(UInt64 rook)
+inline UInt64 RowIndex(UInt64 piece)
 {
     UInt64 row = 0;
     for (row = 0; row < 8; row++)
     {
-        if ((rook & (0xFFULL << (row*8))) != 0)
+        if ((piece & (0xFFULL << (row*8))) != 0)
         {
             break;
         }
@@ -50,9 +50,9 @@ inline UInt64 RookRow(UInt64 rook)
     return row;
 }
 
-inline UInt64 RookCol(UInt64 rook)
+inline UInt64 ColIndex(UInt64 piece)
 {
-    UInt64 bit = RookColEx(rook);
+    UInt64 bit = ColEx(piece);
     UInt64 col = 0;
     while (bit >>= 1)
         col++;
@@ -112,7 +112,84 @@ UInt64 PiecesKnightMove(Pieces* A, Pieces* B)
 
 UInt64 PiecesBishopMove(Pieces* A, Pieces* B)
 {
-    return 0;
+    UInt64 aMoves;
+    UInt64 aPLocation, bPLocation;
+    UInt64 row, col, square;
+    UInt64 bishopRow, bishopCol;
+    
+    bishopRow = RowIndex(A->Bishops);
+    bishopCol = ColIndex(A->Bishops);
+    
+    aPLocation = Union(A);
+    bPLocation = Union(B);
+    
+    aMoves = 0;
+    
+    for (row = bishopRow, col = bishopCol, square = A->Bishops;
+         row < 7 && col < 7;
+         row++, col++)
+    {
+        square <<= 9;
+        if (aPLocation & square)
+        {
+            break;
+        }
+        aMoves |= square;
+        if (bPLocation & square)
+        {
+            break;
+        }
+    }
+    
+    for (row = bishopRow, col = bishopCol, square = A->Bishops;
+         row < 7 && col > 0;
+         row++, col--)
+    {
+        square <<= 7;
+        if (aPLocation & square)
+        {
+            break;
+        }
+        aMoves |= square;
+        if (bPLocation & square)
+        {
+            break;
+        }
+    }
+    
+    for (row = bishopRow, col = bishopCol, square = A->Bishops;
+         row > 0 && col > 0;
+         row--, col--)
+    {
+        square >>= 9;
+        if (aPLocation & square)
+        {
+            break;
+        }
+        aMoves |= square;
+        if (bPLocation & square)
+        {
+            break;
+        }
+    }
+    
+    for (row = bishopRow, col = bishopCol, square = A->Bishops;
+         row > 0 && col < 7;
+         row--, col++)
+    {
+        square >>= 7;
+        if (aPLocation & square)
+        {
+            break;
+        }
+        aMoves |= square;
+        if (bPLocation & square)
+        {
+            break;
+        }
+    }
+    
+    return aMoves;
 }
 
 UInt64 PiecesRookMove(Pieces* A, Pieces* B)
@@ -125,8 +202,8 @@ UInt64 PiecesRookMove(Pieces* A, Pieces* B)
     
     UInt64 rookFile;
     UInt64 rookRank;
-    UInt64 rookRowIndex = RookRow(A->Rooks);
-    UInt64 rookColIndex = RookCol(A->Rooks);
+    UInt64 rookRowIndex = RowIndex(A->Rooks);
+    UInt64 rookColIndex = ColIndex(A->Rooks);
     
     aPLocation = Union(A);
     bPLocation = Union(B);
