@@ -93,10 +93,24 @@ bool BishopCapture()
     return (result == 0x21400102040);
 }
 
+bool QueenMovement()
+{
+    UInt64 result;
+    
+    Pieces white = {0};
+    Pieces black = {0};
+    white.Queen = d4;
+    
+    result = PiecesQueenMove(&white, &black);
+
+    return (result == 0x88492A1CF71C2A49);
+}
+
 bool (*PawnTests[])() = {PawnsFirstMove, PawnsFirstMoveBlocking};
 bool (*KnightTests[])() = {KnightMovement};
 bool (*RookTests[])() = {RookMovement, RookCapture};
 bool (*BishopTests[])() = {BishopMovement, BishopCapture};
+bool (*QueenTests[])() = {QueenMovement};
 
 void RunAllTests()
 {
@@ -146,6 +160,18 @@ void RunAllTests()
         else
         {
             cout << GREEN << "Passed" << WHITE << ": Bishop test " << i << WHITE << endl;
+        }
+    }
+    
+    for (int i = 0; i < sizeof(QueenTests) / sizeof(void*); i++)
+    {
+        if (QueenTests[i]() != true)
+        {
+            cout << RED << "Failed" << WHITE << ": Queen test " << i << endl;
+        }
+        else
+        {
+            cout << GREEN << "Passed" << WHITE << ": Queen test " << i << WHITE << endl;
         }
     }
     cout << "========= Testing complete ========" << endl << endl;
