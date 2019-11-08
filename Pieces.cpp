@@ -272,3 +272,18 @@ UInt64 PiecesRookMove(Pieces* A, Pieces* B)
     aMoves = Intersect(horizontalMoves | verticalMoves, A->Rooks);
     return aMoves;
 }
+
+UInt64 PiecesQueenMove(Pieces* A, Pieces* B)
+{
+    UInt64 aMoves;
+    
+    A->Rooks |= A->Queen;
+    aMoves = PiecesRookMove(A, B);
+    A->Rooks = Intersect(A->Rooks, A->Queen);
+    
+    A->Bishops |= A->Queen;
+    aMoves |= PiecesBishopMove(A, B);
+    A->Bishops = Intersect(A->Bishops, A->Queen);
+    
+    return aMoves;
+}
