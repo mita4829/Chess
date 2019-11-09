@@ -22,6 +22,14 @@
 #define min(X,Y) (X < Y ? X : Y)
 #define max(X,Y) (X > Y ? X : Y)
 
+/*
+ Function: MostSigBit
+ Parameters:
+    - UInt64 value. A value which represents the board.
+ Return:
+    UInt64. The most significant bit.
+ Notes:
+ */
 UInt64 MostSigBit(UInt64 value)
 {
     UInt64 msb = 0x8000000000000000;
@@ -37,6 +45,16 @@ UInt64 MostSigBit(UInt64 value)
     return msb;
 }
 
+/*
+ Function: RowIndex
+ Parameters:
+    - UInt64 piece. A piece on a board
+ Return:
+    UInt64. The row/Rank of where the piece is located.
+ Notes:
+    This function assumes there's only one piece on the board.
+    The return value is 0th index.
+ */
 inline UInt64 RowIndex(UInt64 piece)
 {
     UInt64 row = 0;
@@ -50,6 +68,16 @@ inline UInt64 RowIndex(UInt64 piece)
     return row;
 }
 
+/*
+ Function: ColIndex
+ Parameters:
+    - UInt64 piece. A piece on a board
+ Return:
+    UInt64. The column/File of where the piece is located.
+ Notes:
+    This function assumes there's only one piece on the board.
+    The return value is 0th index.
+ */
 inline UInt64 ColIndex(UInt64 piece)
 {
     UInt64 bit = ColEx(piece);
@@ -59,6 +87,17 @@ inline UInt64 ColIndex(UInt64 piece)
     return col;
 }
 
+/*
+ Function: PiecesPawnMove
+ Parameters:
+     - Pieces A. The moving side pieces
+     - Pieces B. The non-moving side pieces
+ Return:
+     UInt64. The squares where the pawns can go.
+ Notes:
+     This function assume all A pawns are going
+     south to north.
+ */
 UInt64 PiecesPawnMove(Pieces* A, Pieces* B)
 {
     UInt64 aMoves;
@@ -92,6 +131,15 @@ UInt64 PiecesPawnMove(Pieces* A, Pieces* B)
     return aMoves;
 }
 
+/*
+ Function: PiecesPawnMove
+ Parameters:
+    - Pieces A. The moving side pieces
+    - Pieces B. The non-moving side pieces
+ Return:
+    UInt64. The squares where the knights can go.
+ Notes:
+ */
 UInt64 PiecesKnightMove(Pieces* A, Pieces* B)
 {
     UInt64 aMoves;
@@ -110,6 +158,15 @@ UInt64 PiecesKnightMove(Pieces* A, Pieces* B)
     return aMoves;
 }
 
+/*
+ Function: PiecesBishopMove
+ Parameters:
+    - Pieces A. The moving side pieces
+    - Pieces B. The non-moving side pieces
+ Return:
+    UInt64. The squares where the bishop can go.
+ Notes:
+ */
 UInt64 PiecesBishopMove(Pieces* A, Pieces* B)
 {
     UInt64 aMoves;
@@ -125,6 +182,7 @@ UInt64 PiecesBishopMove(Pieces* A, Pieces* B)
     
     aMoves = 0;
     
+    // Get the moves going NE
     for (row = bishopRow, col = bishopCol, square = A->Bishops;
          row < 7 && col < 7;
          row++, col++)
@@ -141,6 +199,7 @@ UInt64 PiecesBishopMove(Pieces* A, Pieces* B)
         }
     }
     
+    // Get the moves going NW
     for (row = bishopRow, col = bishopCol, square = A->Bishops;
          row < 7 && col > 0;
          row++, col--)
@@ -157,6 +216,7 @@ UInt64 PiecesBishopMove(Pieces* A, Pieces* B)
         }
     }
     
+    // Get the moves going SW
     for (row = bishopRow, col = bishopCol, square = A->Bishops;
          row > 0 && col > 0;
          row--, col--)
@@ -173,6 +233,7 @@ UInt64 PiecesBishopMove(Pieces* A, Pieces* B)
         }
     }
     
+    // Get the moves going SE
     for (row = bishopRow, col = bishopCol, square = A->Bishops;
          row > 0 && col < 7;
          row--, col++)
@@ -192,6 +253,15 @@ UInt64 PiecesBishopMove(Pieces* A, Pieces* B)
     return aMoves;
 }
 
+/*
+ Function: PiecesBishopMove
+ Parameters:
+    - Pieces A. The moving side pieces
+    - Pieces B. The non-moving side pieces
+ Return:
+    UInt64. The squares where the rook can go.
+ Notes:
+ */
 UInt64 PiecesRookMove(Pieces* A, Pieces* B)
 {
     UInt64 aMoves, horizontalMoves, verticalMoves;
@@ -273,6 +343,16 @@ UInt64 PiecesRookMove(Pieces* A, Pieces* B)
     return aMoves;
 }
 
+/*
+ Function: PiecesQueenMove
+ Parameters:
+    - Pieces A. The moving side pieces
+    - Pieces B. The non-moving side pieces
+ Return:
+    UInt64. The squares where the queen can go.
+ Notes:
+    This function combines the logic of the rook and bishop
+ */
 UInt64 PiecesQueenMove(Pieces* A, Pieces* B)
 {
     UInt64 aMoves;
@@ -286,4 +366,63 @@ UInt64 PiecesQueenMove(Pieces* A, Pieces* B)
     A->Bishops = Intersect(A->Bishops, A->Queen);
     
     return aMoves;
+}
+
+/*
+ Function: PiecesKingMove
+ Parameters:
+    - Pieces A. The moving side pieces
+    - Pieces B. The non-moving side pieces
+ Return:
+    UInt64. The squares where the king can go.
+ Notes:
+    this function does not account if the king
+    is/will be in check.
+ */
+UInt64 PiecesKingMove(Pieces* A, Pieces* B)
+{
+    UInt64 aMoves;
+    UInt64 aPLocation;
+    UInt64 king;
+    
+    king        = A->King;
+    aPLocation  = Union(A);
+    
+    aMoves = (Intersect(king << 7, FILE_H) |
+              king << 8 |
+              Intersect(king << 9, FILE_A) |
+              Intersect(king << 1, FILE_A) |
+              Intersect(king >> 1, FILE_H) |
+              Intersect(king >> 7, FILE_A) |
+              king >> 8 |
+              Intersect(king >> 9, FILE_H));
+    
+    aMoves = Intersect(aMoves, aPLocation);
+    
+    // TODO: Castling logic
+    
+    return aMoves;
+}
+
+/*
+ Function: PiecesGetAttackSquares
+ Parameters:
+    - Pieces A. Attacking side
+    - Pieces B. Non-attacking side
+ Return:
+    UInt64. The squares that side A attacks.
+ Notes:
+ */
+UInt64 PiecesGetAttackSquares(Pieces* A, Pieces* B)
+{
+    UInt64 aSquares;
+    
+    aSquares  = PiecesPawnMove(A, B);
+    aSquares |= PiecesKnightMove(A, B);
+    aSquares |= PiecesBishopMove(A, B);
+    aSquares |= PiecesRookMove(A, B);
+    aSquares |= PiecesQueenMove(A, B);
+    aSquares |= PiecesKingMove(A, B);
+    
+    return aSquares;
 }
