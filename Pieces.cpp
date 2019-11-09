@@ -285,6 +285,12 @@ UInt64 PiecesRookMove(Pieces* A, Pieces* B)
     aPLocation &= (rookRank | rookFile);
     bPLocation &= (rookRank | rookFile);
     
+    // Special case when there are no rooks on the board
+    if (A->Rooks == 0)
+    {
+        return 0;
+    }
+    
     // First calculate the horizontal rank moves
     // Find the closest piece east of the rook.
     // If it's the same color, subtract that square, else

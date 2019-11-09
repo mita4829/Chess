@@ -65,6 +65,16 @@ bool RookCapture()
     return (result == 0x874080800);
 }
 
+bool RookEmptyBoard()
+{
+    UInt64 result;
+    Pieces white = {0};
+    Pieces black = {0};
+    
+    result = PiecesRookMove(&white, &black);
+    return (result == 0);
+}
+
 bool BishopMovement()
 {
     UInt64 result;
@@ -121,83 +131,34 @@ bool KingMovement()
 
 bool (*PawnTests[])() = {PawnsFirstMove, PawnsFirstMoveBlocking};
 bool (*KnightTests[])() = {KnightMovement};
-bool (*RookTests[])() = {RookMovement, RookCapture};
+bool (*RookTests[])() = {RookMovement, RookCapture, RookEmptyBoard};
 bool (*BishopTests[])() = {BishopMovement, BishopCapture};
 bool (*QueenTests[])() = {QueenMovement};
 bool (*KingTests[])() = {KingMovement};
 
+void TestIterator(bool (*UnitTest[])(), UInt64 Count, string Description = "")
+{
+    for (UInt64 i = 0; i < Count; i++)
+    {
+        if (UnitTest[i]() != true)
+        {
+            cout << RED << "Failed" << WHITE << ": Test " << i << ". " << Description << endl;
+        }
+        else
+        {
+            cout << GREEN << "Passed" << WHITE << ": Test " << i << ". " << Description << endl;
+        }
+    }
+}
+
 void RunAllTests()
 {
     cout << endl << "===== Starting all unit tests =====" << endl;
-    for (int i = 0; i < sizeof(PawnTests) / sizeof(void *); i++)
-    {
-        if (PawnTests[i]() != true)
-        {
-            cout << RED << "Failed" << WHITE << ": Pawn test " << i << endl;
-        }
-        else
-        {
-            cout << GREEN << "Passed" << WHITE << ": Pawn test " << i << WHITE << endl;
-        }
-    }
-    
-    for (int i = 0; i < sizeof(KnightTests) / sizeof(void*); i++)
-    {
-        if (KnightTests[i]() != true)
-        {
-            cout << RED << "Failed" << WHITE << ": Knight test " << i << endl;
-        }
-        else
-        {
-            cout << GREEN << "Passed" << WHITE << ": Knight test " << i << WHITE << endl;
-        }
-    }
-    
-    for (int i = 0; i < sizeof(RookTests) / sizeof(void*); i++)
-    {
-        if (RookTests[i]() != true)
-        {
-            cout << RED << "Failed" << WHITE << ": Rook test " << i << endl;
-        }
-        else
-        {
-            cout << GREEN << "Passed" << WHITE << ": Rook test " << i << WHITE << endl;
-        }
-    }
-    
-    for (int i = 0; i < sizeof(BishopTests) / sizeof(void*); i++)
-    {
-        if (BishopTests[i]() != true)
-        {
-            cout << RED << "Failed" << WHITE << ": Bishop test " << i << endl;
-        }
-        else
-        {
-            cout << GREEN << "Passed" << WHITE << ": Bishop test " << i << WHITE << endl;
-        }
-    }
-    
-    for (int i = 0; i < sizeof(QueenTests) / sizeof(void*); i++)
-    {
-        if (QueenTests[i]() != true)
-        {
-            cout << RED << "Failed" << WHITE << ": Queen test " << i << endl;
-        }
-        else
-        {
-            cout << GREEN << "Passed" << WHITE << ": Queen test " << i << WHITE << endl;
-        }
-    }
-    for (int i = 0; i < sizeof(KingTests) / sizeof(void*); i++)
-    {
-        if (KingTests[i]() != true)
-        {
-            cout << RED << "Failed" << WHITE << ": King test " << i << endl;
-        }
-        else
-        {
-            cout << GREEN << "Passed" << WHITE << ": King test " << i << WHITE << endl;
-        }
-    }
+    TestIterator(PawnTests, sizeof(PawnTests)/sizeof(void*), "Pawns ");
+    TestIterator(KnightTests, sizeof(KnightTests)/sizeof(void*), "Knights ");
+    TestIterator(RookTests, sizeof(RookTests)/sizeof(void*), "Rooks ");
+    TestIterator(BishopTests, sizeof(BishopTests)/sizeof(void*), "Bishops ");
+    TestIterator(QueenTests, sizeof(QueenTests)/sizeof(void*), "Queens ");
+    TestIterator(KingTests, sizeof(KingTests)/sizeof(void*), "Kings ");
     cout << "========= Testing complete ========" << endl << endl;
 }
