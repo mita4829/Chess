@@ -101,15 +101,6 @@ extern UInt64 ReverseMap[256];
 extern UInt64 Rank[8];
 extern UInt64 File[8];
 
-#define Reverse(X) ((ReverseMap[X & 0xFF] << 56) | \
-                   (ReverseMap[(X >> 8)& 0xFF] << 48) | \
-                   (ReverseMap[(X >> 16)& 0xFF] << 40) | \
-                   (ReverseMap[(X >> 24) & 0xFF] << 32) | \
-                   (ReverseMap[(X >> 32) & 0xFF] << 24) | \
-                   (ReverseMap[(X >> 40) & 0xFF] << 16) | \
-                   (ReverseMap[(X >> 48) & 0xFF] << 8) | \
-                   (ReverseMap[(X >> 56) & 0xFF])) \
-
 #define Flip(board) ((board << 56) | \
                     ((board << 40) & 0x00ff000000000000) | \
                     ((board << 24) & 0x0000ff0000000000) | \
@@ -130,6 +121,7 @@ extern UInt64 File[8];
                        pieces->Reserved| \
                        pieces->Reserved2)\
 
+#define Debug(msg) {cout << GREEN << "Debug" << WHITE << ": " << msg << endl;}
 
 #define PURPLE  "\e[0;34m"
 #define PINK    "\e[0;35m"
@@ -140,7 +132,6 @@ extern UInt64 File[8];
 #define WHITE   "\e[0m"
 
 UInt64 FlipBoard(UInt64 board);
-void DebugPrint(string);
 void DebugBoard(UInt64);
 
 #endif // FOUNDATION_HPP
