@@ -120,6 +120,14 @@ extern UInt64 File[8];
                     (board >> 56)) \
 
 #define str(X) to_string(X)
+#define Intersect(A, B) ((A) & (~(B)))
+#define Union(pieces) (pieces->Pawns   | \
+                       pieces->Knights | \
+                       pieces->Bishops | \
+                       pieces->Rooks   | \
+                       pieces->Queen   | \
+                       pieces->King    | \
+                       pieces->Reserved) \
 
 
 #define PURPLE  "\e[0;34m"

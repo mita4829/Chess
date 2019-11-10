@@ -55,3 +55,4 @@ void DebugBoard(UInt64 board)
     cout << endl;
     cout << BLUE << "  A B C D E F G H" << WHITE << endl;
 }
+
