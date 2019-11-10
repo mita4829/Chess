@@ -144,13 +144,14 @@ bool QueenMultipleQueens()
 bool KingMovement()
 {
     UInt64 result;
+
+    Board board;
+    BoardZeroInit(&board);
     
-    Pieces white = {0};
-    Pieces black = {0};
-    white.King = d4;
-    white.Bishops = d5;
+    board.White.King = d4;
+    board.White.Bishops = d5;
     
-    result = PiecesKingMove(&white, &black);
+    result = PiecesKingMove(&board.White, &board.Black);
     return (result == 0x14141C0000);
 }
 
@@ -172,6 +173,21 @@ bool KingIsCheckmated()
     result = BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
     
     return (result == false);
+}
+
+bool KingCastle()
+{
+    Board board;
+    UInt64 result;
+    BoardZeroInit(&board);
+    
+    board.White.State.Castle = 0;
+    board.White.King  = e1;
+    board.White.Rooks = a1 | h1;
+    
+    result = PiecesKingMove(&board.White, &board.Black);
+    
+    return (result == 0x386C);
 }
 
 bool BoardFirstMove()
@@ -210,7 +226,7 @@ bool (*KnightTests[])() = {KnightMovement};
 bool (*RookTests[])() = {RookMovement, RookCapture, RookEmptyBoard, RookMultipleRooks};
 bool (*BishopTests[])() = {BishopMovement, BishopCapture};
 bool (*QueenTests[])() = {QueenMovement, QueenMultipleQueens};
-bool (*KingTests[])() = {KingMovement, KingIsCheckmated};
+bool (*KingTests[])() = {KingMovement, KingIsCheckmated, KingCastle,};
 bool (*BoardTests[])() = {BoardFirstMove, BoardPieceCollision};
 
 void TestIterator(bool (*UnitTest[])(), UInt64 Count, string Description = "")
