@@ -80,104 +80,16 @@ inline UInt64 ColIndex(UInt64 piece)
 }
 
 /*
- Function: PiecesPawnMove
+ Function: PiecesPawnAttack
  Parameters:
-     - Pieces A. The moving side pieces
-     - Pieces B. The non-moving side pieces
+    - Piece* A. Attacking side
+    - Piece* B. Non-attacking side
  Return:
-     UInt64. The squares where the pawns can go.
+    UInt64. The attack squares for the pawns
  Notes:
-     This function assume all A pawns are going
-     south to north.
+
  */
-UInt64 PiecesWhitePawnMove(Pieces* A, Pieces* B)
-{
-    UInt64 aMoves;
-    UInt64 upLeftAttack;
-    UInt64 uprightAttack;
-    UInt64 firstMove;
-    UInt64 forward;
-    UInt64 aPLocation;
-    UInt64 bPLocation;
-    
-    aPLocation = Union(A);
-    bPLocation = Union(B);
-    
-    upLeftAttack  = Intersect((bPLocation & (A->Pawns << 0x9)), FILE_A);
-    uprightAttack = Intersect((bPLocation & (A->Pawns << 0x7)), FILE_H);
-    
-    // Pawns on their first move.
-    // Get all the pawns on their 2nd rank
-    firstMove       = (A->Pawns & RANK_2);
-    // Then remove the pawn moves where there are pieces blocking on the 3rd rank
-    firstMove       = Intersect((firstMove << 8), (aPLocation | bPLocation));
-    // Then condition out the moves where pieces are blocking the 4th rank
-    firstMove      |= Intersect((firstMove << 8), (aPLocation | bPLocation));
-    
-    // Non-starting pawns
-    forward       = Intersect(((A->Pawns ^ RANK_2) << 8), (aPLocation | bPLocation));
-    
-    aMoves = forward | firstMove | upLeftAttack | uprightAttack;
-    
-    // TODO: Add logic for en passant
-    return aMoves;
-}
-
-UInt64 PiecesBlackPawnMove(Pieces* A, Pieces* B)
-{
-    UInt64 aMoves;
-    UInt64 upLeftAttack;
-    UInt64 uprightAttack;
-    UInt64 firstMove;
-    UInt64 forward;
-    UInt64 aPLocation;
-    UInt64 bPLocation;
-    
-    aPLocation = Union(A);
-    bPLocation = Union(B);
-    
-    upLeftAttack  = Intersect((bPLocation & (A->Pawns >> 0x9)), FILE_A);
-    uprightAttack = Intersect((bPLocation & (A->Pawns >> 0x7)), FILE_H);
-    
-    // Pawns on their first move.
-    // Get all the pawns on their 7th rank
-    firstMove       = (A->Pawns & RANK_7);
-    // Then remove the pawn moves where there are pieces blocking on the 3rd rank
-    firstMove       = Intersect((firstMove >> 8), (aPLocation | bPLocation));
-    // Then condition out the moves where pieces are blocking the 4th rank
-    firstMove      |= Intersect((firstMove >> 8), (aPLocation | bPLocation));
-    
-    // Non-starting pawns
-    forward       = Intersect(((A->Pawns ^ RANK_7) >> 8), (aPLocation | bPLocation));
-    
-    aMoves = forward | firstMove | upLeftAttack | uprightAttack;
-    
-    // TODO: Add logic for en passant
-    return aMoves;
-}
-
-UInt64 PiecesPawnMove(Pieces* A, Pieces* B)
-{
-    UInt64 aMoves = 0;
-    
-    if (A->Pawns == 0)
-    {
-        return 0;
-    }
-    
-    if (A->Color == WHITE_PIECE)
-    {
-        aMoves = PiecesWhitePawnMove(A, B);
-    }
-    else
-    {
-        aMoves = PiecesBlackPawnMove(A, B);
-    }
-    
-    return aMoves;
-}
-
-UInt64 PiecePawnAttack(Pieces* A, Pieces* B)
+UInt64 PiecesPawnAttack(Pieces* A, Pieces* B)
 {
     UInt64 aMoves = 0;
     UInt64 bPLocation;
@@ -196,8 +108,116 @@ UInt64 PiecePawnAttack(Pieces* A, Pieces* B)
     }
     else
     {
-        aMoves  = Intersect((bPLocation & (A->Pawns >> 0x9)), FILE_A);
-        aMoves |= Intersect((bPLocation & (A->Pawns >> 0x7)), FILE_H);
+        aMoves  = Intersect((bPLocation & (A->Pawns >> 0x9)), FILE_H);
+        aMoves |= Intersect((bPLocation & (A->Pawns >> 0x7)), FILE_A);
+    }
+    
+    return aMoves;
+}
+
+/*
+ Function: PiecesWhitePawnMove
+ Parameters:
+     - Pieces* A. The moving side pieces
+     - Pieces* B. The non-moving side pieces
+ Return:
+     UInt64. The squares where white the pawns can go.
+ Notes:
+ */
+UInt64 PiecesWhitePawnMove(Pieces* A, Pieces* B)
+{
+    UInt64 aMoves;
+    UInt64 attacks;
+    UInt64 firstMove;
+    UInt64 forward;
+    UInt64 aPLocation, bPLocation;
+    
+    aPLocation = Union(A);
+    bPLocation = Union(B);
+    
+    attacks = PiecesPawnAttack(A, B);
+    
+    // Pawns on their first move.
+    // Get all the pawns on their 2nd rank
+    firstMove       = (A->Pawns & RANK_2);
+    // Then remove the pawn moves where there are pieces blocking on the 3rd rank
+    firstMove       = Intersect((firstMove << 8), (aPLocation | bPLocation));
+    // Then condition out the moves where pieces are blocking the 4th rank
+    firstMove      |= Intersect((firstMove << 8), (aPLocation | bPLocation));
+    
+    // Non-starting pawns
+    forward       = Intersect((Intersect(A->Pawns, RANK_2) << 8), (aPLocation | bPLocation));
+    
+    aMoves = forward | firstMove | attacks;
+    
+    // TODO: Add logic for en passant
+    return aMoves;
+}
+
+/*
+ Function: PiecesBlackPawnMove
+ Parameters:
+    - Pieces* A. The moving side pieces
+    - Pieces* B. The non-moving side pieces
+ Return:
+    UInt64. The squares where black the pawns can go.
+ Notes:
+ */
+UInt64 PiecesBlackPawnMove(Pieces* A, Pieces* B)
+{
+    UInt64 aMoves;
+    UInt64 attacks;
+    UInt64 firstMove;
+    UInt64 forward;
+    UInt64 aPLocation, bPLocation;
+    
+    aPLocation = Union(A);
+    bPLocation = Union(B);
+
+    attacks = PiecesPawnAttack(A, B);
+    
+    // Pawns on their first move.
+    // Get all the pawns on their 7th rank
+    firstMove       = (A->Pawns & RANK_7);
+    // Then remove the pawn moves where there are pieces blocking on the 6rd rank
+    firstMove       = Intersect((firstMove >> 8), (aPLocation | bPLocation));
+    // Then condition out the moves where pieces are blocking the 5th rank
+    firstMove      |= Intersect((firstMove >> 8), (aPLocation | bPLocation));
+    
+    // Non-starting pawns
+    forward       = Intersect((Intersect(A->Pawns, RANK_7) >> 8), (aPLocation | bPLocation));
+    
+    aMoves = forward | firstMove | attacks;
+    
+    // TODO: Add logic for en passant
+    return aMoves;
+}
+
+/*
+ Function: PiecesPawnMove
+ Parameters:
+    - Pieces* A. The moving side pieces
+    - Pieces* B. The non-moving side pieces
+ Return:
+    UInt64. The squares where the pawns can go.
+ Notes:
+ */
+UInt64 PiecesPawnMove(Pieces* A, Pieces* B)
+{
+    UInt64 aMoves = 0;
+    
+    if (A->Pawns == 0)
+    {
+        return 0;
+    }
+    
+    if (A->Color == WHITE_PIECE)
+    {
+        aMoves = PiecesWhitePawnMove(A, B);
+    }
+    else
+    {
+        aMoves = PiecesBlackPawnMove(A, B);
     }
     
     return aMoves;
@@ -231,13 +251,15 @@ UInt64 PiecesKnightMove(Pieces* A, Pieces* B)
 }
 
 /*
- Function: PiecesBishopMove
+ Function: PiecesBishopMoveEx
  Parameters:
     - Pieces A. The moving side pieces
     - Pieces B. The non-moving side pieces
  Return:
     UInt64. The squares where the bishop can go.
  Notes:
+    This is an private function under the assumption
+    that there's only one bishop.
  */
 UInt64 PiecesBishopMoveEx(Pieces* A, Pieces* B)
 {
@@ -325,6 +347,16 @@ UInt64 PiecesBishopMoveEx(Pieces* A, Pieces* B)
     return aMoves;
 }
 
+/*
+ Function: PiecesBishopMove
+ Parameters:
+    - Pieces A. The moving side pieces
+    - Pieces B. The non-moving side pieces
+ Return:
+    UInt64. The squares where the bishop can go.
+ Notes:
+
+ */
 UInt64 PiecesBishopMove(Pieces* A, Pieces* B)
 {
     Pieces movingSide;
@@ -334,21 +366,21 @@ UInt64 PiecesBishopMove(Pieces* A, Pieces* B)
     UInt64 square  = 0x1;
     aMoves = 0;
     
-    // Special case when there are no rooks on the board
+    // Special case when there are no bishops on the board
     if (bishop == 0)
     {
         return 0;
     }
     
     memcpy(&movingSide, A, sizeof(Pieces));
-    // There may be more than one rook. Iterate the board
+    // There may be more than one bishop. Iterate the board
     // and calculate the moves for each rook.
     for (UInt64 i = 0; i < 63; i++, square <<= 1)
     {
         if (bishop & square)
         {
-            // Found a rook. Move all other rooks to reserved,
-            // so it doesn't interfere with the rook move calculation
+            // Found a rook. Move all other bishops to reserved,
+            // so it doesn't interfere with the bishops move calculation
             movingSide.Bishops   = square;
             movingSide.Reserved  = bishop & ~square;
             aMoves |= PiecesBishopMoveEx(&movingSide, B);
@@ -370,6 +402,8 @@ UInt64 PiecesBishopMove(Pieces* A, Pieces* B)
  Return:
     UInt64. The squares where the rook can go.
  Notes:
+    This is a private function that assumes
+    there's only one rook.
  */
 UInt64 PiecesRookMoveEx(Pieces* A, Pieces* B)
 {
@@ -430,8 +464,8 @@ UInt64 PiecesRookMoveEx(Pieces* A, Pieces* B)
 
     // Now calculate the vertical moves similar to how the horizontal moves where
     // calculated
-    lsb = min(LeastSigBit(aPLocation & umask & rookFile),
-              LeastSigBit(bPLocation & umask & rookFile));
+    lsb = minz(LeastSigBit(aPLocation & umask & rookFile),
+               LeastSigBit(bPLocation & umask & rookFile));
 
     if (lsb & bPLocation)
     {
@@ -452,6 +486,15 @@ UInt64 PiecesRookMoveEx(Pieces* A, Pieces* B)
     return aMoves;
 }
 
+/*
+ Function: PiecesBishopMove
+ Parameters:
+    - Pieces A. The moving side pieces
+    - Pieces B. The non-moving side pieces
+ Return:
+    UInt64. The squares where the rook can go.
+ Notes:
+ */
 UInt64 PiecesRookMove(Pieces* A, Pieces* B)
 {
     Pieces movingSide;
@@ -497,7 +540,9 @@ UInt64 PiecesRookMove(Pieces* A, Pieces* B)
  Return:
     UInt64. The squares where the queen can go.
  Notes:
-    This function combines the logic of the rook and bishop
+    This function combines the logic of the rook and bishop.
+    This is a private function with the assumption
+    there's only one queen.
  */
 UInt64 PiecesQueenMoveEx(Pieces* A, Pieces* B)
 {
@@ -597,7 +642,7 @@ UInt64 PiecesQueenMoveEx(Pieces* A, Pieces* B)
     bPLocation &= (queenRank | queenFile);
     
     // First calculate the horizontal rank moves
-    // Find the closest piece east of the rook.
+    // Find the closest piece east of the queen.
     // If it's the same color, subtract that square, else
     // include it in the row.
     lsb = minz(MostSigBit(aPLocation & umask & queenRank),
@@ -605,7 +650,7 @@ UInt64 PiecesQueenMoveEx(Pieces* A, Pieces* B)
     
     if (lsb & bPLocation)
     {
-        // If the east most piece closest to the rook is the not the
+        // If the east most piece closest to the queen is the not the
         // same color, it is attackable, so include it.
         lsb <<= 1;
     }
@@ -614,7 +659,7 @@ UInt64 PiecesQueenMoveEx(Pieces* A, Pieces* B)
     // msb being a 2^n integer.
     horizontalMoves = (lsb - 1);
     
-    // Find the west most piece closest to rook
+    // Find the west most piece closest to queen
     msb = max(LeastSigBit(aPLocation & lmask & queenRank),
               LeastSigBit(bPLocation & lmask & queenRank));
     
@@ -623,7 +668,7 @@ UInt64 PiecesQueenMoveEx(Pieces* A, Pieces* B)
     {
         msb <<= 1;
     }
-    // There can be a case where there are no pieces west of the rook. This will
+    // There can be a case where there are no pieces west of the queen. This will
     // cause msb = 0 => msb = (UInt64)-1 which will erase everything when Intersected.
     // Because of this, keep msb = 0.
     msb = msb != 0 ? msb - 1 : msb;
@@ -632,8 +677,8 @@ UInt64 PiecesQueenMoveEx(Pieces* A, Pieces* B)
     
     // Now calculate the vertical moves similar to how the horizontal moves where
     // calculated
-    lsb = min(LeastSigBit(aPLocation & umask & queenFile),
-              LeastSigBit(bPLocation & umask & queenFile));
+    lsb = minz(LeastSigBit(aPLocation & umask & queenFile),
+               LeastSigBit(bPLocation & umask & queenFile));
     
     if (lsb & bPLocation)
     {
@@ -656,6 +701,15 @@ UInt64 PiecesQueenMoveEx(Pieces* A, Pieces* B)
 
 }
 
+/*
+ Function: PiecesQueenMove
+ Parameters:
+    - Pieces A. The moving side pieces
+    - Pieces B. The non-moving side pieces
+ Return:
+    UInt64. The squares where the queen can go.
+ Notes:
+ */
 UInt64 PiecesQueenMove(Pieces* A, Pieces* B)
 {
     Pieces movingSide;
@@ -665,21 +719,21 @@ UInt64 PiecesQueenMove(Pieces* A, Pieces* B)
     UInt64 square  = 0x1;
     aMoves = 0;
     
-    // Special case when there are no rooks on the board
+    // Special case when there are no queens on the board
     if (queens == 0)
     {
         return 0;
     }
     
     memcpy(&movingSide, A, sizeof(Pieces));
-    // There may be more than one rook. Iterate the board
-    // and calculate the moves for each rook.
+    // There may be more than one queen. Iterate the board
+    // and calculate the moves for each queen.
     for (UInt64 i = 0; i < 63; i++, square <<= 1)
     {
         if (queens & square)
         {
-            // Found a rook. Move all other rooks to reserved,
-            // so it doesn't interfere with the rook move calculation
+            // Found a rook. Move all other queens to reserved,
+            // so it doesn't interfere with the queens move calculation
             movingSide.Queen    = square;
             movingSide.Reserved = queens & ~square;
             aMoves |= PiecesQueenMoveEx(&movingSide, B);
@@ -693,6 +747,19 @@ UInt64 PiecesQueenMove(Pieces* A, Pieces* B)
     return aMoves;
 }
 
+/*
+ Function: PiecesKingMoveFast
+ Parameters:
+    - Pieces* A. The moving side pieces
+    - Pieces* B. The non-moving side pieces
+ Return:
+ UInt64. The squares where the king occupy
+ Notes:
+    This function does not check if the calculated
+    squares causes the king to be in check. i.e.
+    it's just a "fast" calculation to see the opponent
+    king's attacks.
+ */
 UInt64 PiecesKingMoveFast(Pieces* A, Pieces* B)
 {
     UInt64 aMoves;
@@ -797,7 +864,7 @@ End:
 UInt64 PiecesGetAttackSquares(Pieces* A, Pieces* B)
 {
     UInt64 aSquares = 0;
-    aSquares  = PiecePawnAttack(A, B);
+    aSquares  = PiecesPawnAttack(A, B);
     aSquares |= PiecesKnightMove(A, B);
     aSquares |= PiecesBishopMove(A, B);
     aSquares |= PiecesRookMove(A, B);
