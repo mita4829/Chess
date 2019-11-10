@@ -21,6 +21,17 @@ void BoardInit(Board* board)
     board->Black.Color   = BLACK_PIECE;
 }
 
+void BoardZeroInit(Board* board)
+{
+    memset(board, 0, sizeof(Board));
+    
+    board->White.Color   = WHITE_PIECE;
+    board->White.State.Castle  = 0xFF;
+    
+    board->Black.Color   = BLACK_PIECE;
+    board->Black.State.Castle  = 0xFF;
+}
+
 bool BoardIsMoveLegalByPieceEx(Pieces* A, Pieces* B, PieceType PieceType, Move Move)
 {
     bool   isMoveLegal;
@@ -284,3 +295,21 @@ void DebugBoard(Board* board)
     cout << endl;
     cout << BLUE << "  A B C D E F G H" << WHITE << endl;
 }
+
+bool BoardComparePieces(Pieces* A, Pieces* B)
+{
+    return ((A->Pawns == B->Pawns) &&
+            (A->Knights == B->Knights) &&
+            (A->Bishops == B->Bishops) &&
+            (A->Rooks == B->Rooks) &&
+            (A->Queen == B->Queen) &&
+            (A->King == B->King) &&
+            (A->State.Castle == B->State.Castle));
+}
+
+bool BoardCompare(Board* A, Board* B)
+{
+    return BoardComparePieces(&A->White, &B->White) &&
+           BoardComparePieces(&A->Black, &B->Black);
+}
+

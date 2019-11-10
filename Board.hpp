@@ -7,7 +7,6 @@
 struct Board {
     Pieces White;
     Pieces Black;
-    PlayingState State;
 };
 
 struct Move {
@@ -16,7 +15,10 @@ struct Move {
 };
 
 void BoardInit(Board*);
+void BoardZeroInit(Board* board);
 bool BoardIsMoveLegal(Board*, Move, UInt64, bool);
+
 void DebugBoard(Board* board);
+bool BoardCompare(Board* A, Board* B);
 
 #endif // BOARD_HPP

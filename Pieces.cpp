@@ -160,6 +160,11 @@ UInt64 PiecesPawnMove(Pieces* A, Pieces* B)
 {
     UInt64 aMoves = 0;
     
+    if (A->Pawns == 0)
+    {
+        return 0;
+    }
+    
     if (A->Color == WHITE_PIECE)
     {
         aMoves = PiecesWhitePawnMove(A, B);
@@ -167,6 +172,32 @@ UInt64 PiecesPawnMove(Pieces* A, Pieces* B)
     else
     {
         aMoves = PiecesBlackPawnMove(A, B);
+    }
+    
+    return aMoves;
+}
+
+UInt64 PiecePawnAttack(Pieces* A, Pieces* B)
+{
+    UInt64 aMoves = 0;
+    UInt64 bPLocation;
+    
+    if (A->Pawns == 0)
+    {
+        return 0;
+    }
+    
+    bPLocation = Union(B);
+    
+    if (A->Color == WHITE_PIECE)
+    {
+        aMoves  = Intersect((bPLocation & (A->Pawns << 0x9)), FILE_A);
+        aMoves |= Intersect((bPLocation & (A->Pawns << 0x7)), FILE_H);
+    }
+    else
+    {
+        aMoves  = Intersect((bPLocation & (A->Pawns >> 0x9)), FILE_A);
+        aMoves |= Intersect((bPLocation & (A->Pawns >> 0x7)), FILE_H);
     }
     
     return aMoves;
@@ -662,18 +693,7 @@ UInt64 PiecesQueenMove(Pieces* A, Pieces* B)
     return aMoves;
 }
 
-/*
- Function: PiecesKingMove
- Parameters:
-    - Pieces A. The moving side pieces
-    - Pieces B. The non-moving side pieces
- Return:
-    UInt64. The squares where the king can go.
- Notes:
-    this function does not account if the king
-    is/will be in check.
- */
-UInt64 PiecesKingMove(Pieces* A, Pieces* B)
+UInt64 PiecesKingMoveFast(Pieces* A, Pieces* B)
 {
     UInt64 aMoves;
     UInt64 aPLocation;
@@ -693,8 +713,75 @@ UInt64 PiecesKingMove(Pieces* A, Pieces* B)
     
     aMoves = Intersect(aMoves, aPLocation);
     
-    // TODO: Castling logic
+    return aMoves;
+}
+
+/*
+ Function: PiecesKingMove
+ Parameters:
+    - Pieces* A. The moving side pieces
+    - Pieces* B. The non-moving side pieces
+    - Bool FastSearch. When true, only the squares that the
+        King can attack are calculated, and the castling moves
+        and check verification are excluded.
+ Return:
+    UInt64. The squares where the king can go.
+ Notes:
+
+ */
+UInt64 PiecesKingMove(Pieces* A, Pieces* B, bool FastSearch)
+{
+    UInt64 aMoves;
+    UInt64 attackedSquares;
+    UInt64 king;
     
+    king   = A->King;
+    aMoves = PiecesKingMoveFast(A, B);
+    
+    if (FastSearch == true)
+    {
+        goto End;
+    }
+    
+    attackedSquares = PiecesGetAttackSquares(B, A);
+    aMoves = Intersect(aMoves, attackedSquares);
+    
+    if ((A->State.Castle & KING_HAS_MOVED) == false &&
+        (king & attackedSquares) == 0x0)
+    {
+        if ((A->State.Castle & KING_ROOK_HAS_MOVED) == false)
+        {
+            if (A->Color == WHITE_PIECE &&
+                (attackedSquares & (f1 | g1)) == 0x0)
+            {
+                // White can castle short
+                aMoves |= g1;
+            }
+            else if (A->Color == BLACK_PIECE &&
+                     (attackedSquares & (f8 | g8)) == 0x0)
+            {
+                // Black can castle short
+                aMoves |= g8;
+            }
+        }
+        if ((A->State.Castle & QUEEN_ROOK_HAS_MOVED) == false)
+        {
+            if (A->Color == WHITE_PIECE &&
+                (attackedSquares & (d1 | c1)) == 0x0)
+            {
+                // White can castle long
+                aMoves |= c1;
+            }
+            else if (A->Color == BLACK_PIECE &&
+                     (attackedSquares & (d8 | c8)) == 0x0)
+            {
+                // Black can castle long
+                aMoves |= c8;
+            }
+        }
+    }
+
+End:
     return aMoves;
 }
 
@@ -709,14 +796,13 @@ UInt64 PiecesKingMove(Pieces* A, Pieces* B)
  */
 UInt64 PiecesGetAttackSquares(Pieces* A, Pieces* B)
 {
-    UInt64 aSquares;
-    
-    aSquares  = PiecesPawnMove(A, B);
+    UInt64 aSquares = 0;
+    aSquares  = PiecePawnAttack(A, B);
     aSquares |= PiecesKnightMove(A, B);
     aSquares |= PiecesBishopMove(A, B);
     aSquares |= PiecesRookMove(A, B);
     aSquares |= PiecesQueenMove(A, B);
-    aSquares |= PiecesKingMove(A, B);
+    aSquares |= PiecesKingMove(A, B, true);
     
     return aSquares;
 }
