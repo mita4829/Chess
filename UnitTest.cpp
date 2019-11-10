@@ -189,13 +189,29 @@ bool BoardFirstMove()
     return isMoveLegal;
 }
 
+bool BoardPieceCollision()
+{
+    bool isMoveLegal;
+    Board board = {0};
+    
+    board.White.Rooks = a1 | h1;
+    
+    Move move;
+    move.StartSquare = a1;
+    move.EndSquare   = h1;
+    
+    isMoveLegal = BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    
+    return (isMoveLegal == false);
+}
+
 bool (*PawnTests[])() = {PawnsFirstMove, PawnsFirstMoveBlocking};
 bool (*KnightTests[])() = {KnightMovement};
 bool (*RookTests[])() = {RookMovement, RookCapture, RookEmptyBoard, RookMultipleRooks};
 bool (*BishopTests[])() = {BishopMovement, BishopCapture};
 bool (*QueenTests[])() = {QueenMovement, QueenMultipleQueens};
 bool (*KingTests[])() = {KingMovement, KingIsCheckmated};
-bool (*BoardTests[])() = {BoardFirstMove};
+bool (*BoardTests[])() = {BoardFirstMove, BoardPieceCollision};
 
 void TestIterator(bool (*UnitTest[])(), UInt64 Count, string Description = "")
 {

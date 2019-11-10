@@ -14,6 +14,7 @@ struct Pieces {
     UInt64 Queen;
     UInt64 King;
     UInt64 Reserved;
+    UInt64 Reserved2;
     UInt8  Color;
 };
 

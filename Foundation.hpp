@@ -127,7 +127,8 @@ extern UInt64 File[8];
                        pieces->Rooks   | \
                        pieces->Queen   | \
                        pieces->King    | \
-                       pieces->Reserved) \
+                       pieces->Reserved| \
+                       pieces->Reserved2)\
 
 
 #define PURPLE  "\e[0;34m"
