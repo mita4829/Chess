@@ -31,22 +31,27 @@ bool BoardIsMoveLegalByPieceEx(Pieces* A, Pieces* B, PieceType PieceType, Move M
     
     switch (PieceType) {
         case PAWN:
+            tmpPieces.Reserved2 = tmpPieces.Pawns;
             tmpPieces.Pawns &= Move.StartSquare;
             isMoveLegal = (PiecesPawnMove(&tmpPieces, B) & Move.EndSquare);
             break;
         case KNIGHT:
+            tmpPieces.Reserved2 = tmpPieces.Knights;
             tmpPieces.Knights &= Move.StartSquare;
             isMoveLegal = (PiecesKnightMove(&tmpPieces, B) & Move.EndSquare);
             break;
         case BISHOP:
+            tmpPieces.Reserved2 = tmpPieces.Bishops;
             tmpPieces.Bishops &= Move.StartSquare;
             isMoveLegal = (PiecesBishopMove(&tmpPieces, B) & Move.EndSquare);
             break;
         case ROOK:
+            tmpPieces.Reserved2 = tmpPieces.Rooks;
             tmpPieces.Rooks &= Move.StartSquare;
             isMoveLegal = (PiecesRookMove(&tmpPieces, B) & Move.EndSquare);
             break;
         case QUEEN:
+            tmpPieces.Reserved2 = tmpPieces.Queen;
             tmpPieces.Queen &= Move.StartSquare;
             isMoveLegal = (PiecesQueenMove(&tmpPieces, B) & Move.EndSquare);
             break;
