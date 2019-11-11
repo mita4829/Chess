@@ -77,6 +77,54 @@ bool BoardIsMoveLegalByPieceEx(Pieces* A, Pieces* B, PieceType PieceType, Move M
     return isMoveLegal;
 }
 
+/*
+ Function: BoardPromotePawnEx
+ Parameters:
+    - Pieces* A. Promote side
+    - Move Move. Move object info about the pawn
+ Return:
+ Notes:
+    This function gets the promotion choice via
+    stdin. Open-source users should modify their
+    input choice here.
+ */
+void BoardPromotePawnEx(Pieces* A, Move Move)
+{
+    string userInput;
+    bool   userInputIsValid = false;
+
+    while (userInputIsValid == false)
+    {
+        cout << "Pawn promotion" << endl;
+        cout << "Queen (Q), Rook (R), Bishop (B), Knight (N): ";
+        getline(cin, userInput);
+        userInputIsValid = true;
+        
+        if (userInput == "Q")
+        {
+            A->Queen |= Move.EndSquare;
+        }
+        else if (userInput == "R")
+        {
+            A->Rooks |= Move.EndSquare;
+        }
+        else if (userInput == "B")
+        {
+            A->Bishops |= Move.EndSquare;
+        }
+        else if (userInput == "N")
+        {
+            A->Knights |= Move.EndSquare;
+        }
+        else
+        {
+            cout << "Invalid promotion choice." << endl;
+            userInputIsValid = false;
+        }
+        A->Pawns  = Intersect(A->Pawns, Move.EndSquare);
+    }
+}
+
 void BoardCompleteMoveEx(Pieces* A, PieceType AType, Pieces* B, PieceType BType, Move Move)
 {
     bool isEnPassantMove = false;
@@ -85,7 +133,7 @@ void BoardCompleteMoveEx(Pieces* A, PieceType AType, Pieces* B, PieceType BType,
         case PAWN:
             A->Pawns |= Move.EndSquare;
             A->Pawns  = Intersect(A->Pawns, Move.StartSquare);
-            // Check if move is an en passant move
+            // Check if move is an en passant move or promotion
             if (A->Color == WHITE_PIECE)
             {
                 if (B->State.LastMovedPiece == PAWN &&
@@ -94,6 +142,13 @@ void BoardCompleteMoveEx(Pieces* A, PieceType AType, Pieces* B, PieceType BType,
                     ((Move.EndSquare >> 8) & B->State.LastMove.EndSquare))
                 {
                     isEnPassantMove = true;
+                    break;
+                }
+                
+                if (Move.EndSquare & RANK_8)
+                {
+                    BoardPromotePawnEx(A, Move);
+                    break;
                 }
             }
             else
@@ -104,6 +159,13 @@ void BoardCompleteMoveEx(Pieces* A, PieceType AType, Pieces* B, PieceType BType,
                     ((Move.EndSquare << 8) & B->State.LastMove.EndSquare))
                 {
                     isEnPassantMove = true;
+                    break;
+                }
+                
+                if (Move.EndSquare & RANK_1)
+                {
+                    BoardPromotePawnEx(A, Move);
+                    break;
                 }
             }
             break;
