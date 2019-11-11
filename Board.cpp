@@ -79,10 +79,33 @@ bool BoardIsMoveLegalByPieceEx(Pieces* A, Pieces* B, PieceType PieceType, Move M
 
 void BoardCompleteMoveEx(Pieces* A, PieceType AType, Pieces* B, PieceType BType, Move Move)
 {
+    bool isEnPassantMove = false;
+    
     switch (AType) {
         case PAWN:
             A->Pawns |= Move.EndSquare;
             A->Pawns  = Intersect(A->Pawns, Move.StartSquare);
+            // Check if move is an en passant move
+            if (A->Color == WHITE_PIECE)
+            {
+                if (B->State.LastMovedPiece == PAWN &&
+                    (B->State.LastMove.EndSquare & RANK_5) &&
+                    (B->State.LastMove.StartSquare & RANK_7) &&
+                    ((Move.EndSquare >> 8) & B->State.LastMove.EndSquare))
+                {
+                    isEnPassantMove = true;
+                }
+            }
+            else
+            {
+                if (B->State.LastMovedPiece == PAWN &&
+                    (B->State.LastMove.EndSquare & RANK_4) &&
+                    (B->State.LastMove.StartSquare & RANK_2) &&
+                    ((Move.EndSquare << 8) & B->State.LastMove.EndSquare))
+                {
+                    isEnPassantMove = true;
+                }
+            }
             break;
         case KNIGHT:
             A->Knights |= Move.EndSquare;
@@ -95,6 +118,28 @@ void BoardCompleteMoveEx(Pieces* A, PieceType AType, Pieces* B, PieceType BType,
         case ROOK:
             A->Rooks |= Move.EndSquare;
             A->Rooks  = Intersect(A->Rooks, Move.StartSquare);
+            if (A->Color == WHITE_PIECE)
+            {
+                if (Move.StartSquare == a1)
+                {
+                    A->State.Castle |= QUEEN_ROOK_HAS_MOVED;
+                }
+                else if (Move.StartSquare == h1)
+                {
+                    A->State.Castle |= KING_ROOK_HAS_MOVED;
+                }
+            }
+            else
+            {
+                if (Move.StartSquare == a8)
+                {
+                    A->State.Castle |= QUEEN_ROOK_HAS_MOVED;
+                }
+                else if (Move.StartSquare == h8)
+                {
+                    A->State.Castle |= KING_ROOK_HAS_MOVED;
+                }
+            }
             break;
         case QUEEN:
             A->Queen |= Move.EndSquare;
@@ -103,6 +148,49 @@ void BoardCompleteMoveEx(Pieces* A, PieceType AType, Pieces* B, PieceType BType,
         case KING:
             A->King |= Move.EndSquare;
             A->King  = Intersect(A->King, Move.StartSquare);
+            // Castle logic
+            if ((A->State.Castle & KING_HAS_MOVED) == 0x0)
+            {
+                if (A->Color == WHITE_PIECE)
+                {
+                    if (Move.EndSquare == g1 &&
+                        (A->State.Castle & KING_ROOK_HAS_MOVED) == 0x0)
+                    {
+                        // White king is castling short
+                        A->State.Castle |= KING_ROOK_HAS_MOVED;
+                        A->Rooks  = Intersect(A->Rooks, h1);
+                        A->Rooks |= f1;
+                    }
+                    else if (Move.EndSquare == c1 &&
+                             (A->State.Castle & QUEEN_ROOK_HAS_MOVED) == 0x0)
+                    {
+                        // White king is castling long
+                        A->State.Castle |= QUEEN_ROOK_HAS_MOVED;
+                        A->Rooks  = Intersect(A->Rooks, a1);
+                        A->Rooks |= d1;
+                    }
+                }
+                else
+                {
+                    if (Move.EndSquare == g8 &&
+                        (A->State.Castle & KING_ROOK_HAS_MOVED) == 0x0)
+                    {
+                        // Black king is castling short
+                        A->State.Castle |= KING_ROOK_HAS_MOVED;
+                        A->Rooks  = Intersect(A->Rooks, h8);
+                        A->Rooks |= f8;
+                    }
+                    else if (Move.EndSquare == c8 &&
+                             (A->State.Castle & QUEEN_ROOK_HAS_MOVED) == 0x0)
+                    {
+                        // White king is castling long
+                        A->State.Castle |= QUEEN_ROOK_HAS_MOVED;
+                        A->Rooks  = Intersect(A->Rooks, a8);
+                        A->Rooks |= d8;
+                    }
+                }
+            }
+            A->State.Castle |= KING_HAS_MOVED;
             break;
         default:
             break;
@@ -126,6 +214,21 @@ void BoardCompleteMoveEx(Pieces* A, PieceType AType, Pieces* B, PieceType BType,
             break;
         case KING:
             B->King &= ~Move.EndSquare;
+            break;
+        case NONE:
+            // If the last move was an en passant move,
+            // the captured pawn must be removed.
+            if (isEnPassantMove == true)
+            {
+                if (A->Color == WHITE_PIECE)
+                {
+                    B->Pawns &= ~(Move.EndSquare >> 8);
+                }
+                else
+                {
+                    B->Pawns &= ~(Move.EndSquare << 8);
+                }
+            }
             break;
         default:
             break;
@@ -204,11 +307,21 @@ bool BoardIsMoveLegal(Board* Board, Move Move, UInt64 Color, bool ReturnPosition
         {
             memcpy(&Board->White, &movingSide, sizeof(Pieces));
             memcpy(&Board->Black, &nonMovingSide, sizeof(Pieces));
+            // Update the last move to be this move
+            Board->White.State.LastMove       = Move;
+            Board->White.State.LastMovedPiece = movingPieceType;
+            memset(&Board->Black.State.LastMove, 0, sizeof(Move));
+            Board->Black.State.LastMovedPiece = NONE;
         }
         else
         {
             memcpy(&Board->Black, &movingSide, sizeof(Pieces));
             memcpy(&Board->White, &nonMovingSide, sizeof(Pieces));
+            // Update the last move to be this move
+            Board->Black.State.LastMove       = Move;
+            Board->Black.State.LastMovedPiece = movingPieceType;
+            memset(&Board->White.State.LastMove, 0, sizeof(Move));
+            Board->White.State.LastMovedPiece = NONE;
         }
     }
     

@@ -3,6 +3,8 @@
 
 #include "Foundation.hpp"
 #include "Pieces.hpp"
+#include <cstdio>
+#include <ctime>
 
 void RunAllTests();
 

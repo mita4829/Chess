@@ -80,6 +80,40 @@ inline UInt64 ColIndex(UInt64 piece)
 }
 
 /*
+ Function: PiecesPawnMoveFast
+ Parameters:
+    - Pieces* A. The moving side pieces
+    - Pieces* B. The non-moving side pieces
+ Return:
+    UInt64. The squares where the pawn attacks "may" happen
+ Notes:
+    This function return squares that pawns "may" attack
+    if the opposite color happen to place a piece there.
+ */
+UInt64 PiecesPawnMoveFast(Pieces* A, Pieces* B)
+{
+    UInt64 aMoves = 0;
+    
+    if (A->Pawns == 0)
+    {
+        return 0;
+    }
+    
+    if (A->Color == WHITE_PIECE)
+    {
+        aMoves  = Intersect((A->Pawns << 0x9), FILE_A);
+        aMoves |= Intersect((A->Pawns << 0x7), FILE_H);
+    }
+    else
+    {
+        aMoves  = Intersect((A->Pawns >> 0x9), FILE_H);
+        aMoves |= Intersect((A->Pawns >> 0x7), FILE_A);
+    }
+    
+    return aMoves;
+}
+
+/*
  Function: PiecesPawnAttack
  Parameters:
     - Piece* A. Attacking side
@@ -131,6 +165,7 @@ UInt64 PiecesWhitePawnMove(Pieces* A, Pieces* B)
     UInt64 firstMove;
     UInt64 forward;
     UInt64 aPLocation, bPLocation;
+    UInt64 enPassantSquares, enPassantEscapeSquare;
     
     aPLocation = Union(A);
     bPLocation = Union(B);
@@ -150,7 +185,24 @@ UInt64 PiecesWhitePawnMove(Pieces* A, Pieces* B)
     
     aMoves = forward | firstMove | attacks;
     
-    // TODO: Add logic for en passant
+    // Check for En Passants
+    // The following checks
+    // - If Black's last moved piece is a pawn, and
+    // - There exist a white pawn on the 5th rank, and
+    // - Black's pawn moved two squares on its first move
+    if (B->State.LastMovedPiece == PAWN &&
+        (A->Pawns & RANK_5) &&
+        (B->State.LastMove.StartSquare & RANK_7) &&
+        (B->State.LastMove.EndSquare   & RANK_5))
+    {
+        enPassantSquares  = Intersect(A->Pawns << 7, FILE_H);
+        enPassantSquares |= Intersect(A->Pawns << 9, FILE_A);
+        enPassantEscapeSquare = B->State.LastMove.EndSquare << 8;
+        
+        enPassantSquares &= enPassantEscapeSquare;
+        aMoves |= enPassantSquares;
+    }
+    
     return aMoves;
 }
 
@@ -170,6 +222,7 @@ UInt64 PiecesBlackPawnMove(Pieces* A, Pieces* B)
     UInt64 firstMove;
     UInt64 forward;
     UInt64 aPLocation, bPLocation;
+    UInt64 enPassantSquares, enPassantEscapeSquare;
     
     aPLocation = Union(A);
     bPLocation = Union(B);
@@ -189,27 +242,40 @@ UInt64 PiecesBlackPawnMove(Pieces* A, Pieces* B)
     
     aMoves = forward | firstMove | attacks;
     
-    // TODO: Add logic for en passant
+    // Check for En Passants
+    // The following checks
+    // - If White's last moved piece is a pawn, and
+    // - There exist a black pawn on the 4th rank, and
+    // - White's pawn moved two squares on its first move
+    if (B->State.LastMovedPiece == PAWN &&
+        (A->Pawns & RANK_4) &&
+        (B->State.LastMove.StartSquare & RANK_2) &&
+        (B->State.LastMove.EndSquare   & RANK_4))
+    {
+        enPassantSquares  = Intersect(A->Pawns >> 7, FILE_A);
+        enPassantSquares |= Intersect(A->Pawns >> 9, FILE_H);
+        enPassantEscapeSquare = B->State.LastMove.EndSquare >> 8;
+        
+        enPassantSquares &= enPassantEscapeSquare;
+        aMoves |= enPassantSquares;
+    }
+    
     return aMoves;
 }
 
 /*
- Function: PiecesPawnMove
+ Function: PiecesPawnMoveEx
  Parameters:
     - Pieces* A. The moving side pieces
     - Pieces* B. The non-moving side pieces
  Return:
     UInt64. The squares where the pawns can go.
  Notes:
+    This function assumes there's only one pawn on the board.
  */
-UInt64 PiecesPawnMove(Pieces* A, Pieces* B)
+UInt64 PiecesPawnMoveEx(Pieces* A, Pieces* B)
 {
     UInt64 aMoves = 0;
-    
-    if (A->Pawns == 0)
-    {
-        return 0;
-    }
     
     if (A->Color == WHITE_PIECE)
     {
@@ -225,6 +291,53 @@ UInt64 PiecesPawnMove(Pieces* A, Pieces* B)
 
 /*
  Function: PiecesPawnMove
+ Parameters:
+    - Pieces A. The moving side pieces
+    - Pieces B. The non-moving side pieces
+ Return:
+    UInt64. The squares where the bishop can go.
+ Notes:
+ 
+ */
+UInt64 PiecesPawnMove(Pieces* A, Pieces* B)
+{
+    Pieces movingSide;
+    UInt64 aMoves;
+    
+    UInt64 pawn   = A->Pawns;
+    UInt64 square  = 0x1;
+    aMoves = 0;
+    
+    // Special case when there are no pawns on the board
+    if (pawn == 0)
+    {
+        return 0;
+    }
+    
+    memcpy(&movingSide, A, sizeof(Pieces));
+    // There may be more than one pawn. Iterate the board
+    // and calculate the moves for each pawn.
+    for (UInt64 i = 0; i < 63; i++, square <<= 1)
+    {
+        if (pawn & square)
+        {
+            // Found a pawn. Move all other pawns to reserved,
+            // so it doesn't interfere with the pawns move calculation
+            movingSide.Pawns     = square;
+            movingSide.Reserved  = pawn & ~square;
+            aMoves |= PiecesPawnMoveEx(&movingSide, B);
+            
+            movingSide.Pawns      = pawn;
+            movingSide.Reserved   = 0;
+        }
+        
+    }
+    
+    return aMoves;
+}
+
+/*
+ Function: PiecesKnightMove
  Parameters:
     - Pieces A. The moving side pieces
     - Pieces B. The non-moving side pieces
@@ -864,7 +977,7 @@ End:
 UInt64 PiecesGetAttackSquares(Pieces* A, Pieces* B)
 {
     UInt64 aSquares = 0;
-    aSquares  = PiecesPawnAttack(A, B);
+    aSquares  = PiecesPawnMoveFast(A, B);
     aSquares |= PiecesKnightMove(A, B);
     aSquares |= PiecesBishopMove(A, B);
     aSquares |= PiecesRookMove(A, B);

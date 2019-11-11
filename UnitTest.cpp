@@ -1,6 +1,8 @@
 #include "UnitTest.hpp"
 #include "Board.hpp"
 
+#define abs(X) ((X) < 0 ? -(X) : (X))
+
 bool PawnsFirstMove()
 {
     UInt64 result;
@@ -52,6 +54,38 @@ bool PawnEdgeAttacks()
     result = PiecesPawnMove(&board.Black, &board.White);
     
     return (result == 0xC0000000);
+}
+
+bool PawnEnPassantWhite()
+{
+    Board board;
+    UInt64 result;
+    BoardZeroInit(&board);
+    
+    board.White.Pawns = e5;
+    board.Black.Pawns = d5;
+    board.Black.State.LastMove = {d7, d5};
+    board.Black.State.LastMovedPiece = PAWN;
+    
+    result = PiecesPawnMove(&board.White, &board.Black);
+    
+    return (result == 0x180000000000);
+}
+
+bool PawnEnPassantBlack()
+{
+    Board board;
+    UInt64 result;
+    BoardZeroInit(&board);
+    
+    board.White.Pawns = f4;
+    board.Black.Pawns = e4;
+    board.White.State.LastMove = {f2, f4};
+    board.White.State.LastMovedPiece = PAWN;
+    
+    result = PiecesPawnMove(&board.Black, &board.White);
+    
+    return (result == 0x300000);
 }
 
 bool KnightMovement()
@@ -324,13 +358,99 @@ bool BoardPieceCollision()
     return (isMoveLegal == false);
 }
 
-bool (*PawnTests[])() = {PawnsFirstMove, PawnsFirstMoveBlocking, PawnMiddleGame, PawnEdgeAttacks};
+bool BoardSimplePawnPush()
+{
+    Board board;
+    bool isMoveLegal;
+    BoardInit(&board);
+    
+    Move move;
+    move.StartSquare = d2;
+    move.EndSquare   = d4;
+    
+    isMoveLegal = BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = g8;
+    move.EndSquare = f6;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = d4;
+    move.EndSquare   = d5;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = e7;
+    move.EndSquare   = e5;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = d5;
+    move.EndSquare   = e6;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = f8;
+    move.EndSquare   = b4;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = b1;
+    move.EndSquare   = c3;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = e8;
+    move.EndSquare   = g8;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = c1;
+    move.EndSquare   = f4;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = d7;
+    move.EndSquare   = e6;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = d1;
+    move.EndSquare   = d2;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = b8;
+    move.EndSquare   = c6;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = e1;
+    move.EndSquare   = c1;
+    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    
+    return isMoveLegal;
+}
+
+bool PerfSimpleGamePerf()
+{
+    clock_t start;
+    double  duration;
+    bool    isPerfGood;
+    
+    start = clock();
+    BoardSimplePawnPush();
+    duration = (clock() - start) / (double)CLOCKS_PER_SEC;
+    
+    isPerfGood = ((duration - (double)0.000040) <= (double)0.000001);
+    
+    if (isPerfGood == false)
+    {
+        cout << YELLOW << "    Baseline" << WHITE << ": " << "40μs" << endl;
+        cout << YELLOW << "    Result  " << WHITE << ": " << duration * 1000000 << "μs" << endl;
+        cout << YELLOW << "    Delta   " << WHITE << ": +" << (duration - (double)0.000040) * 1000000 << "μs" << endl;
+    }
+    
+    return isPerfGood;
+}
+
+bool (*PawnTests[])() = {PawnsFirstMove, PawnsFirstMoveBlocking, PawnMiddleGame, PawnEdgeAttacks, PawnEnPassantWhite, PawnEnPassantBlack};
 bool (*KnightTests[])() = {KnightMovement, KnightEdge, KnightZeroKnights};
 bool (*RookTests[])() = {RookMovement, RookCapture, RookEmptyBoard, RookMultipleRooks, RookMiddleGame};
 bool (*BishopTests[])() = {BishopMovement, BishopCapture, BishopMultipleBishops};
 bool (*QueenTests[])() = {QueenMovement, QueenMultipleQueens, QueenMultipleCapture};
 bool (*KingTests[])() = {KingMovement, KingIsCheckmated, KingCastle,};
-bool (*BoardTests[])() = {BoardFirstMove, BoardPieceCollision};
+bool (*BoardTests[])() = {BoardFirstMove, BoardPieceCollision, BoardSimplePawnPush};
+bool (*PerfTests[])() = {PerfSimpleGamePerf};
 
 void TestIterator(bool (*UnitTest[])(), UInt64 Count, string Description = "")
 {
@@ -357,5 +477,6 @@ void RunAllTests()
     TestIterator(QueenTests, sizeof(QueenTests)/sizeof(void*), "Queens ");
     TestIterator(KingTests, sizeof(KingTests)/sizeof(void*), "Kings ");
     TestIterator(BoardTests, sizeof(BoardTests)/sizeof(void*), "Board Tests ");
+    TestIterator(PerfTests, sizeof(PerfTests)/sizeof(void*), "Perf Tests ");
     cout << "========= Testing complete ========" << endl << endl;
 }

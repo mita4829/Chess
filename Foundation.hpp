@@ -131,6 +131,11 @@ extern UInt64 File[8];
 #define YELLOW  "\e[1;33m"
 #define WHITE   "\e[0m"
 
+struct Move {
+    UInt64 StartSquare;
+    UInt64 EndSquare;
+};
+
 UInt64 FlipBoard(UInt64 board);
 void DebugBoard(UInt64);
 
