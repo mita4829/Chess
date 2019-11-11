@@ -9,11 +9,6 @@ struct Board {
     Pieces Black;
 };
 
-struct Move {
-    UInt64 StartSquare;
-    UInt64 EndSquare;
-};
-
 void BoardInit(Board*);
 void BoardZeroInit(Board* board);
 bool BoardIsMoveLegal(Board*, Move, UInt64, bool);

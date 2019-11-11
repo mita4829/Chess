@@ -10,11 +10,25 @@
 #define KING_ROOK_HAS_MOVED 0x2
 #define QUEEN_ROOK_HAS_MOVED 0x4
 
+enum PieceType {
+    NONE,
+    PAWN,
+    KNIGHT,
+    BISHOP,
+    ROOK,
+    QUEEN,
+    KING
+};
+
 struct PlayingState {
     UInt8 Castle;
     // 0x1 = King has moved
     // 0x2 = King Rook has moved
     // 0x4 = Queen Rook has moved
+    
+    // The 
+    Move        LastMove;
+    PieceType   LastMovedPiece;
 };
 
 struct Pieces {
@@ -28,16 +42,6 @@ struct Pieces {
     PlayingState State;
     UInt64 Reserved;  // Used as placeholder for multiple type pieces
     UInt64 Reserved2; // Used as placeholder for legal move check
-};
-
-enum PieceType {
-    PAWN,
-    KNIGHT,
-    BISHOP,
-    ROOK,
-    QUEEN,
-    KING,
-    NONE
 };
 
 UInt64 PiecesPawnMove(Pieces*, Pieces*);
