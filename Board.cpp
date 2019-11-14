@@ -1,5 +1,13 @@
 #include "Board.hpp"
 
+/*
+ Function: BoardInit
+ Parameters:
+    - Board* Board
+ Return:
+ Notes:
+    This function sets up the board for a new game
+ */
 void BoardInit(Board* board)
 {
     memset(board, 0, sizeof(Board));
@@ -21,18 +29,64 @@ void BoardInit(Board* board)
     board->Black.Color   = BLACK_PIECE;
 }
 
+/*
+ Function: BoardZeroInit
+ Parameters:
+    - Board* Board
+ Return:
+ Notes:
+    This function sets up the board with no pieces,
+    and all castling flags are off.
+ */
 void BoardZeroInit(Board* board)
 {
     memset(board, 0, sizeof(Board));
     
     board->White.Color   = WHITE_PIECE;
-    board->White.State.Castle  = 0xFF;
+    board->White.State.Castle  = (KING_HAS_MOVED | KING_ROOK_HAS_MOVED | QUEEN_ROOK_HAS_MOVED);
     
     board->Black.Color   = BLACK_PIECE;
-    board->Black.State.Castle  = 0xFF;
+    board->Black.State.Castle  = (KING_HAS_MOVED | KING_ROOK_HAS_MOVED | QUEEN_ROOK_HAS_MOVED);
 }
 
-bool BoardIsMoveLegalByPieceEx(Pieces* A, Pieces* B, PieceType PieceType, Move Move)
+
+/*
+ Function: BoardZeroInit
+ Parameters:
+    - Board* Board
+    - Pieces* A
+    - Pieces* B
+ Return:
+ Notes:
+    This function sets up the board given both side's pieces
+ */
+void BoardInitWithPieces(Board* Board, Pieces* A, Pieces* B)
+{
+    if (A->Color == WHITE_PIECE)
+    {
+        memcpy(&Board->White, A, sizeof(Pieces));
+        memcpy(&Board->Black, B, sizeof(Pieces));
+    }
+    else
+    {
+        memcpy(&Board->Black, A, sizeof(Pieces));
+        memcpy(&Board->White, B, sizeof(Pieces));
+    }
+}
+
+/*
+ Function: BoardCheckMoveIsLegalByPieceEx
+ Parameters:
+    - Pieces* A. The moving side
+    - Pieces* B. The non-moving side
+    - PieceType PieceType. The kind of piece being moved
+    - Move Move. Contains the start and end squares for the moving piece
+ Return:
+    True if the move was successful, false otherwise.
+ Notes:
+    This function checks if the move is legal.
+ */
+bool BoardCheckMoveIsLegalByPieceEx(Pieces* A, Pieces* B, PieceType PieceType, Move Move)
 {
     bool   isMoveLegal;
     Pieces tmpPieces;
@@ -92,7 +146,7 @@ void BoardPromotePawnEx(Pieces* A, Move Move)
 {
     string userInput;
     bool   userInputIsValid = false;
-
+    
     while (userInputIsValid == false)
     {
         cout << "Pawn promotion" << endl;
@@ -125,6 +179,19 @@ void BoardPromotePawnEx(Pieces* A, Move Move)
     }
 }
 
+/*
+ Function: BoardCompleteMoveEx
+ Parameters:
+    - Pieces* A. The moving side
+    - PieceType AType. The kind of piece being moved by A
+    - Pieces* B. The non-moving side
+    - PieceType BType. The kind of piece not being moved by B
+    - Move Move. Contains the start and end squares for A's moving piece
+ Return:
+ Notes:
+    This function updates the bit boards and also performs en passant,
+    castling, and promotions when needed.
+ */
 void BoardCompleteMoveEx(Pieces* A, PieceType AType, Pieces* B, PieceType BType, Move Move)
 {
     bool isEnPassantMove = false;
@@ -257,7 +324,7 @@ void BoardCompleteMoveEx(Pieces* A, PieceType AType, Pieces* B, PieceType BType,
         default:
             break;
     }
-
+    
     switch (BType) {
         case PAWN:
             B->Pawns &= ~Move.EndSquare;
@@ -297,7 +364,21 @@ void BoardCompleteMoveEx(Pieces* A, PieceType AType, Pieces* B, PieceType BType,
     }
 }
 
-bool BoardIsMoveLegal(Board* Board, Move Move, UInt64 Color, bool ReturnPosition = false)
+/*
+ Function: BoardAttemptMove
+ Parameters:
+    - Board* Board. The current chess board
+    - Move Move. The move to be attempted
+    - UInt64 Color. The color of the side making the move.
+    - bool ReturnPosition. When true, Board will be updated on exit.
+ Return:
+    bool - If the attempted move is legal, this function returns true,
+           false otherwise.
+ Notes:
+    If ReturnPosition is true, the board object passed in will be updated
+    with the legal move on exit.
+ */
+bool BoardAttemptMove(Board* Board, Move Move, UInt64 Color, bool ReturnPosition = false)
 {
     bool      isMoveLegal;
     UInt64    attackedSquares;
@@ -335,7 +416,7 @@ bool BoardIsMoveLegal(Board* Board, Move Move, UInt64 Color, bool ReturnPosition
 
     // A corresponding piece was found. Now find out if it's a legal move
     // for that piece.
-    isMoveLegal = BoardIsMoveLegalByPieceEx(&movingSide, &nonMovingSide, movingPieceType, Move);
+    isMoveLegal = BoardCheckMoveIsLegalByPieceEx(&movingSide, &nonMovingSide, movingPieceType, Move);
     if (isMoveLegal != true)
     {
         goto End;
@@ -391,6 +472,297 @@ End:
     return isMoveLegal;
 }
 
+/*
+ Function: BoardFindNextPieceEx
+ Parameters:
+    - Pieces* A. The side we're looking at.
+    - PieceType PieceType. The kind of piece
+    - UInt64 StartSquare. Starting square on the board.
+ Return:
+    UInt64 - The next square which has a piece of PieceType. 0 otherwise if there's no more
+ Note:
+     This is a helper function for BoardPieceTypeHasLegalMovesEx.
+     It returns, the next piece on the board that's of type
+     PieceType starting from StartSquare.
+ */
+
+inline UInt64 BoardFindNextMoveEx(UInt64 LegalMoves, UInt64 StartSquare)
+{
+    UInt64 nextMoveLocation;
+    UInt64 aMoves;
+    UInt64 mask;
+    
+    if (StartSquare == NO_SQUARE)
+    {
+        nextMoveLocation = 0;
+        goto End;
+    }
+    
+    aMoves  = StartSquare;
+    mask    = ~(aMoves - 1);
+    aMoves  = mask & LegalMoves;
+    aMoves  = LeastSigBit(aMoves);
+    
+    nextMoveLocation = aMoves;
+    
+End:
+    return nextMoveLocation;
+}
+
+/*
+ Function: BoardFindNextPieceEx
+ Parameters:
+    - Pieces* A. The side we're looking at.
+    - PieceType PieceType. The kind of piece
+    - UInt64 StartSquare. Starting square on the board.
+ Return:
+    UInt64 - The next square which has a piece of PieceType. 0 otherwise if there's no more
+ Note:
+    This is a helper function for BoardPieceTypeHasLegalMovesEx.
+    It returns, the next piece on the board that's of type
+    PieceType starting from StartSquare.
+ */
+inline UInt64 BoardFindNextPieceEx(Pieces* A, PieceType PieceType, UInt64 StartSquare)
+{
+    UInt64 nextPiece;
+    UInt64 aPiece;
+    UInt64 mask;
+    
+    if (StartSquare == NO_SQUARE)
+    {
+        nextPiece = 0;
+        goto End;
+    }
+    
+    nextPiece = NO_SQUARE;
+    
+    switch (PieceType) {
+        case PAWN:
+            aPiece = A->Pawns;
+            break;
+        case KNIGHT:
+            aPiece = A->Knights;
+            break;
+        case BISHOP:
+            aPiece = A->Bishops;
+            break;
+        case ROOK:
+            aPiece = A->Rooks;
+            break;
+        case QUEEN:
+            aPiece = A->Queen;
+            break;
+        case KING:
+            aPiece = A->King;
+            break;
+        default:
+            aPiece = 0x0;
+            break;
+    }
+    
+    mask    = (StartSquare - 1);
+    aPiece &= ~mask;
+    aPiece  = LeastSigBit(aPiece);
+    
+    nextPiece = aPiece;
+    
+End:
+    return nextPiece;
+}
+
+/*
+ Function: BoardGetPieceMoveCallbackEx
+ Parameters:
+    - PieceType PieceType. The kind of piece being moved.
+ Return:
+    (Piece*, Piece*) -> UInt64. The associated Pieces*Move callback
+        for the piece.
+ Note:
+ */
+UInt64 (*BoardGetPieceMoveCallbackEx(PieceType PieceType))(Pieces*, Pieces*)
+{
+    switch (PieceType) {
+        case PAWN:
+            return PiecesPawnMove;
+        case KNIGHT:
+            return PiecesKnightMove;
+        case BISHOP:
+            return PiecesBishopMove;
+        case ROOK:
+            return PiecesRookMove;
+        case QUEEN:
+            return PiecesQueenMove;
+        case KING:
+            return PiecesKingMove;
+        default:
+            break;
+    }
+    
+    return nullptr;
+}
+
+/*
+ Function: BoardPieceHasLegalMovesEx
+ Parameters:
+    - Pieces* A. Pieces for attacking side
+    - Pieces* B. Pieces for attacked side
+    - UInt64 LegalMoves. The legal moves for the piece at PieceLocation
+    - UInt64 PieceLocation. The square the piece is located on the board
+    - PieceType MovingSidePieceType. The kind of piece being moved.
+ Return:
+    bool - True if A has checkmated B, false
+           otherwise.
+ Note:
+    This is a helper function for BoardCheckmated. This function
+    iterates through all the moves for the piece at PieceLocation.
+    It then validates if this moves stop B from being in check.
+ */
+bool BoardPieceHasLegalMovesEx(Pieces* A,
+                               Pieces* B,
+                               UInt64 LegalMoves,
+                               UInt64 PieceLocation,
+                               PieceType MovingSidePieceType)
+{
+    Move   move;
+    bool   bIsCheckmated;
+    UInt64 endSquare;
+    UInt64 attackedSquares;
+    PieceType nonMovingPieceType;
+    Pieces nonMovingSide, movingSide;
+    
+    bIsCheckmated = true;
+    endSquare = a1;
+    move.StartSquare = PieceLocation;
+    
+    memcpy(&movingSide, B, sizeof(Pieces));
+    memcpy(&nonMovingSide, A, sizeof(Pieces));
+    
+    endSquare = BoardFindNextMoveEx(LegalMoves, endSquare);
+    
+    while (endSquare != NO_SQUARE)
+    {
+        move.EndSquare = endSquare;
+        nonMovingPieceType = PiecesMapSquareToPiece(A, endSquare);
+        
+        BoardCompleteMoveEx(&movingSide, MovingSidePieceType, &nonMovingSide, nonMovingPieceType, move);
+        
+        // See if the attacked king is still in check
+        if (PiecesIsKingInCheck(&movingSide, &nonMovingSide) == false)
+        {
+            bIsCheckmated = false;
+            goto End;
+        }
+        
+        // Increment to the next square to find the next legal move
+        endSquare <<= 1;
+        // Find the next legal move and see if that move leads
+        // B king to no longer be in check
+        endSquare = BoardFindNextMoveEx(LegalMoves, endSquare);
+    }
+End:
+    return bIsCheckmated;
+}
+
+/*
+ Function: BoardPieceTypeHasLegalMovesEx
+ Parameters:
+    - Pieces* A. Pieces for attacking side
+    - Pieces* B. Pieces for attacked side
+    - PieceType. The kind of piece B will move to see if legal
+ Return:
+    bool - True if A has checkmated B, false
+           otherwise.
+ Note:
+    This is a helper function for BoardCheckmated. This function
+    iterates through all the pieces for a given PieceType and then
+    iterates through each of their moves to see if legal.
+ */
+bool BoardPieceTypeHasLegalMovesEx(Pieces* A, Pieces* B, PieceType PieceType)
+{
+    UInt64 startSquare = a1;
+    UInt64 pieceLocation, legalMoves;
+    UInt64 (*PieceMoveCallback)(Pieces*, Pieces*);
+    bool   isBCheckmated;
+    
+    isBCheckmated = true;
+    
+    // While there are still pieces of this piece type
+    // get that piece location and the routine for finding its moves.
+    pieceLocation     = BoardFindNextPieceEx(B, PieceType, startSquare);
+    PieceMoveCallback = BoardGetPieceMoveCallbackEx(PieceType);
+    
+    // Get the legal moves for this piece type. If there are none, return.
+    if ((legalMoves = PieceMoveCallback(B, A)) == 0)
+    {
+        goto End;
+    }
+    
+    while (pieceLocation != NO_SQUARE)
+    {
+        isBCheckmated = BoardPieceHasLegalMovesEx(A, B, legalMoves, pieceLocation, PieceType);
+        if (isBCheckmated == false)
+        {
+            goto End;
+        }
+        
+        startSquare   = (pieceLocation << 1);
+        pieceLocation = BoardFindNextPieceEx(B, PieceType, startSquare);
+    }
+    
+End:
+    return isBCheckmated;
+}
+
+/*
+ Function: BoardCheckmated
+ Parameters:
+    - Pieces* A. Pieces for attacking side
+    - Pieces* B. Pieces for attacked side
+ Return:
+    bool - True if A has checkmated B, false
+           otherwise.
+ Note:
+    This function is fairly expensive.
+    Avoid calling it frequently.
+ */
+bool BoardCheckmated(Pieces* A, Pieces* B)
+{
+    bool bIsCheckmated = true;
+    
+    // Check if B is being checked
+    if (PiecesIsKingInCheck(B, A) == false)
+    {
+        // B is not checked. Exit
+        bIsCheckmated = false;
+        goto End;
+    }
+    
+    // Iterate through all the moves B has,
+    // and re-evaluate the board. And if B
+    // has no legal moves to escape check,
+    // B has been checkmated.
+    for (UInt64 pieceType = KING; pieceType > NONE; pieceType--)
+    {
+        bIsCheckmated = BoardPieceTypeHasLegalMovesEx(A, B, (PieceType)pieceType);
+        if (bIsCheckmated == false)
+        {
+            goto End;
+        }
+    }
+    
+End:
+    return bIsCheckmated;
+}
+
+
+/*
+ Function: DebugBoard
+ Parameters:
+    - Pieces* A. Board obj
+ Return:
+ Notes:
+    This function prints out the board to stdio
+ */
 void DebugBoard(Board* board)
 {
     Pieces  white, black;
@@ -471,6 +843,17 @@ void DebugBoard(Board* board)
     cout << BLUE << "  A B C D E F G H" << WHITE << endl;
 }
 
+/*
+ Function: BoardComparePieces
+ Parameters:
+    - Pieces* A. First Board
+    - Pieces* B. Second Board
+ Return:
+    bool - True if both piece objs are equal, false
+           otherwise.
+ Notes:
+    BoardComparePieces does not compare Reserved bit values
+ */
 bool BoardComparePieces(Pieces* A, Pieces* B)
 {
     return ((A->Pawns == B->Pawns) &&
@@ -482,9 +865,21 @@ bool BoardComparePieces(Pieces* A, Pieces* B)
             (A->State.Castle == B->State.Castle));
 }
 
+
+/*
+ Function: BoardCompare
+ Parameters:
+    - Board* A. First Board
+    - Board* B. Second Board
+ Return:
+    bool - True if both boards are equal, false
+           otherwise.
+ Notes:
+    BoardCompare does not compare Reserved bit values
+ */
 bool BoardCompare(Board* A, Board* B)
 {
     return BoardComparePieces(&A->White, &B->White) &&
-           BoardComparePieces(&A->Black, &B->Black);
+    BoardComparePieces(&A->Black, &B->Black);
 }
 

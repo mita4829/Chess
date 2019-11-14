@@ -11,7 +11,8 @@ struct Board {
 
 void BoardInit(Board*);
 void BoardZeroInit(Board* board);
-bool BoardIsMoveLegal(Board*, Move, UInt64, bool);
+bool BoardAttemptMove(Board*, Move, UInt64, bool);
+bool BoardCheckmated(Pieces* A, Pieces* B);
 
 void DebugBoard(Board* board);
 bool BoardCompare(Board* A, Board* B);

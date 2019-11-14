@@ -9,7 +9,6 @@
                     ((RANK_2 & X) >> 8)  | \
                     ((RANK_1 & X)))        \
 
-#define LeastSigBit(X) ((X) & (~(X) + 1))
 #define minz(X,Y) ((X < Y && X != 0 ? X : (Y != 0 ? Y : X)))
 #define min(X,Y) (X < Y ? X : Y)
 #define max(X,Y) (X > Y ? X : Y)
@@ -317,7 +316,7 @@ UInt64 PiecesPawnMove(Pieces* A, Pieces* B)
     memcpy(&movingSide, A, sizeof(Pieces));
     // There may be more than one pawn. Iterate the board
     // and calculate the moves for each pawn.
-    for (UInt64 i = 0; i < 63; i++, square <<= 1)
+    for (UInt64 i = 0; i < 64; i++, square <<= 1)
     {
         if (pawn & square)
         {
@@ -488,7 +487,7 @@ UInt64 PiecesBishopMove(Pieces* A, Pieces* B)
     memcpy(&movingSide, A, sizeof(Pieces));
     // There may be more than one bishop. Iterate the board
     // and calculate the moves for each rook.
-    for (UInt64 i = 0; i < 63; i++, square <<= 1)
+    for (UInt64 i = 0; i < 64; i++, square <<= 1)
     {
         if (bishop & square)
         {
@@ -545,8 +544,8 @@ UInt64 PiecesRookMoveEx(Pieces* A, Pieces* B)
     // Find the closest piece east of the rook.
     // If it's the same color, subtract that square, else
     // include it in the row.
-    lsb = minz(MostSigBit(aPLocation & umask & rookRank),
-               MostSigBit(bPLocation & umask & rookRank));
+    lsb = minz(LeastSigBit(aPLocation & umask & rookRank),
+               LeastSigBit(bPLocation & umask & rookRank));
 
     if (lsb & bPLocation)
     {
@@ -560,8 +559,8 @@ UInt64 PiecesRookMoveEx(Pieces* A, Pieces* B)
     horizontalMoves = (lsb - 1);
     
     // Find the west most piece closest to rook
-    msb = max(LeastSigBit(aPLocation & lmask & rookRank),
-              LeastSigBit(bPLocation & lmask & rookRank));
+    msb = max(MostSigBit(aPLocation & lmask & rookRank),
+              MostSigBit(bPLocation & lmask & rookRank));
     
     // Now either include or exclude the west most piece depending on color
     if (msb & aPLocation)
@@ -626,7 +625,7 @@ UInt64 PiecesRookMove(Pieces* A, Pieces* B)
     memcpy(&movingSide, A, sizeof(Pieces));
     // There may be more than one rook. Iterate the board
     // and calculate the moves for each rook.
-    for (UInt64 i = 0; i < 63; i++, square <<= 1)
+    for (UInt64 i = 0; i < 64; i++, square <<= 1)
     {
         if (rooks & square)
         {
@@ -758,8 +757,8 @@ UInt64 PiecesQueenMoveEx(Pieces* A, Pieces* B)
     // Find the closest piece east of the queen.
     // If it's the same color, subtract that square, else
     // include it in the row.
-    lsb = minz(MostSigBit(aPLocation & umask & queenRank),
-               MostSigBit(bPLocation & umask & queenRank));
+    lsb = minz(LeastSigBit(aPLocation & umask & queenRank),
+               LeastSigBit(bPLocation & umask & queenRank));
     
     if (lsb & bPLocation)
     {
@@ -773,8 +772,8 @@ UInt64 PiecesQueenMoveEx(Pieces* A, Pieces* B)
     horizontalMoves = (lsb - 1);
     
     // Find the west most piece closest to queen
-    msb = max(LeastSigBit(aPLocation & lmask & queenRank),
-              LeastSigBit(bPLocation & lmask & queenRank));
+    msb = max(MostSigBit(aPLocation & lmask & queenRank),
+              MostSigBit(bPLocation & lmask & queenRank));
     
     // Now either include or exclude the west most piece depending on color
     if (msb & aPLocation)
@@ -841,7 +840,7 @@ UInt64 PiecesQueenMove(Pieces* A, Pieces* B)
     memcpy(&movingSide, A, sizeof(Pieces));
     // There may be more than one queen. Iterate the board
     // and calculate the moves for each queen.
-    for (UInt64 i = 0; i < 63; i++, square <<= 1)
+    for (UInt64 i = 0; i < 64; i++, square <<= 1)
     {
         if (queens & square)
         {
@@ -909,7 +908,7 @@ UInt64 PiecesKingMoveFast(Pieces* A, Pieces* B)
  Notes:
 
  */
-UInt64 PiecesKingMove(Pieces* A, Pieces* B, bool FastSearch)
+UInt64 PiecesKingMove(Pieces* A, Pieces* B)
 {
     UInt64 aMoves;
     UInt64 attackedSquares;
@@ -917,11 +916,6 @@ UInt64 PiecesKingMove(Pieces* A, Pieces* B, bool FastSearch)
     
     king   = A->King;
     aMoves = PiecesKingMoveFast(A, B);
-    
-    if (FastSearch == true)
-    {
-        goto End;
-    }
     
     attackedSquares = PiecesGetAttackSquares(B, A);
     aMoves = Intersect(aMoves, attackedSquares);
@@ -982,11 +976,20 @@ UInt64 PiecesGetAttackSquares(Pieces* A, Pieces* B)
     aSquares |= PiecesBishopMove(A, B);
     aSquares |= PiecesRookMove(A, B);
     aSquares |= PiecesQueenMove(A, B);
-    aSquares |= PiecesKingMove(A, B, true);
+    aSquares |= PiecesKingMoveFast(A, B);
     
     return aSquares;
 }
 
+/*
+ Function: PiecesIsKingInCheck
+ Parameters:
+    - Pieces* A. The king in question.
+    - Pieces* B. The attacking side.
+ Return:
+    bool - True if A is in check, false otherwise.
+ Notes:
+ */
 bool PiecesIsKingInCheck(Pieces* A, Pieces* B)
 {
     UInt64 attackedSquares;
@@ -1000,6 +1003,15 @@ bool PiecesIsKingInCheck(Pieces* A, Pieces* B)
     return false;
 }
 
+/*
+ Function: PiecesMapSquareToPiece
+ Parameters:
+    - Pieces* A. The pieces being mapped.
+    - UInt64 Square. The square being assessed.
+ Return:
+    PieceType. The kind of piece found at Square. 
+ Notes:
+ */
 PieceType PiecesMapSquareToPiece(Pieces* A, UInt64 Square)
 {
     PieceType type;

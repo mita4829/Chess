@@ -32,6 +32,7 @@ typedef uint64_t UInt64;
 #define RANK_7 0x00FF000000000000
 #define RANK_8 0xFF00000000000000
 
+#define NO_SQUARE 0x0
 #define a1 0x1
 #define b1 0x2
 #define c1 0x4
@@ -120,6 +121,8 @@ extern UInt64 File[8];
                        pieces->King    | \
                        pieces->Reserved| \
                        pieces->Reserved2)\
+
+#define LeastSigBit(X) ((X) & (~(X) + 1))
 
 #define Debug(msg) {cout << GREEN << "Debug" << WHITE << ": " << msg << endl;}
 

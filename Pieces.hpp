@@ -17,7 +17,8 @@ enum PieceType {
     BISHOP,
     ROOK,
     QUEEN,
-    KING
+    KING,
+    PIECE_MAX
 };
 
 struct PlayingState {
@@ -49,8 +50,9 @@ UInt64 PiecesKnightMove(Pieces*, Pieces*);
 UInt64 PiecesRookMove(Pieces*, Pieces*);
 UInt64 PiecesBishopMove(Pieces*, Pieces*);
 UInt64 PiecesQueenMove(Pieces*, Pieces*);
-UInt64 PiecesKingMove(Pieces*, Pieces*, bool = false);
+UInt64 PiecesKingMove(Pieces*, Pieces*);
 PieceType PiecesMapSquareToPiece(Pieces*, UInt64);
 UInt64 PiecesGetAttackSquares(Pieces*, Pieces*);
+bool PiecesIsKingInCheck(Pieces* A, Pieces* B);
 
 #endif // PIECES_HPP
