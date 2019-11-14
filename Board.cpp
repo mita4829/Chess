@@ -409,6 +409,7 @@ bool BoardAttemptMove(Board* Board, Move Move, UInt64 Color, bool ReturnPosition
     if (movingPieceType == NONE)
     {
         // Trying to move a piece on a square that color does not have.
+        Debug("(1)");
         isMoveLegal = false;
         goto End;
     }
@@ -419,6 +420,7 @@ bool BoardAttemptMove(Board* Board, Move Move, UInt64 Color, bool ReturnPosition
     isMoveLegal = BoardCheckMoveIsLegalByPieceEx(&movingSide, &nonMovingSide, movingPieceType, Move);
     if (isMoveLegal != true)
     {
+        Debug("(2)");
         goto End;
     }
     
@@ -436,6 +438,7 @@ bool BoardAttemptMove(Board* Board, Move Move, UInt64 Color, bool ReturnPosition
     if (movingSide.King & attackedSquares)
     {
         // King is in check, previous move is not legal
+        Debug("(3)");
         isMoveLegal = false;
         goto End;
     }

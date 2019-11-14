@@ -1,7 +1,7 @@
 PROG = Chess
 CC = g++
 FLAGS = -std=c++17
-OBJS = Main.o Pieces.o Board.o Foundation.o UnitTest.o
+OBJS = Main.o Pieces.o Board.o Game.o Foundation.o UnitTest.o
 
 $(PROG) : $(OBJS)
 	$(CC) -o $(PROG) $(OBJS) 
@@ -14,6 +14,9 @@ Pieces.o : Pieces.cpp
 
 Board.o : Board.cpp 
 	$(CC) $(FLAGS) -c Board.cpp
+
+Game.o : Game.cpp 
+	$(CC) $(FLAGS) -c Game.cpp
 
 Foundation.o : Foundation.cpp 
 	$(CC) $(FLAGS) -c Foundation.cpp
