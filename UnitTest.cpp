@@ -189,6 +189,20 @@ bool RookMiddleGame()
     return (result == 0xEF101010EE1010EF);
 }
 
+bool RookHorizontalAttack()
+{
+    Board board;
+    UInt64 result;
+    BoardZeroInit(&board);
+
+    board.Black.Rooks = f7;
+    board.Black.Pawns = d7 | c7 | b7;
+    
+    result = PiecesRookMove(&board.Black, &board.White);
+
+    return (result == 0x20D0202020202020);
+}
+
 bool BishopMovement()
 {
     UInt64 result;
@@ -299,15 +313,15 @@ bool KingIsCheckmated()
     board.White.Rooks= a8;
     // King should have no legal moves, as it's black-ranked mated.
     
-    result = BoardIsMoveLegal(&board, move, BLACK_PIECE, false);
+    result = BoardAttemptMove(&board, move, BLACK_PIECE, false);
     
     move.StartSquare = h7;
     move.EndSquare   = h6;
-    result = result || BoardIsMoveLegal(&board, move, BLACK_PIECE, false);
+    result = result || BoardAttemptMove(&board, move, BLACK_PIECE, false);
     
     move.StartSquare = g7;
     move.EndSquare   = g6;
-    result = result || BoardIsMoveLegal(&board, move, BLACK_PIECE, false);
+    result = result || BoardAttemptMove(&board, move, BLACK_PIECE, false);
     
     return (result == false);
 }
@@ -337,7 +351,7 @@ bool BoardFirstMove()
     move.EndSquare   = d4;
     
     bool isMoveLegal;
-    isMoveLegal = BoardIsMoveLegal(&board, move, WHITE_PIECE, false);
+    isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, false);
     
     return isMoveLegal;
 }
@@ -353,7 +367,7 @@ bool BoardPieceCollision()
     move.StartSquare = a1;
     move.EndSquare   = h1;
     
-    isMoveLegal = BoardIsMoveLegal(&board, move, WHITE_PIECE, false);
+    isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, false);
     
     return (isMoveLegal == false);
 }
@@ -368,57 +382,185 @@ bool BoardSimplePawnPush()
     move.StartSquare = d2;
     move.EndSquare   = d4;
     
-    isMoveLegal = BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, true);
     
     move.StartSquare = g8;
     move.EndSquare = f6;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, BLACK_PIECE, true);
     
     move.StartSquare = d4;
     move.EndSquare   = d5;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, WHITE_PIECE, true);
     
     move.StartSquare = e7;
     move.EndSquare   = e5;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, BLACK_PIECE, true);
     
     move.StartSquare = d5;
     move.EndSquare   = e6;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, WHITE_PIECE, true);
     
     move.StartSquare = f8;
     move.EndSquare   = b4;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, BLACK_PIECE, true);
     
     move.StartSquare = b1;
     move.EndSquare   = c3;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, WHITE_PIECE, true);
     
     move.StartSquare = e8;
     move.EndSquare   = g8;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, BLACK_PIECE, true);
     
     move.StartSquare = c1;
     move.EndSquare   = f4;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, WHITE_PIECE, true);
     
     move.StartSquare = d7;
     move.EndSquare   = e6;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, BLACK_PIECE, true);
     
     move.StartSquare = d1;
     move.EndSquare   = d2;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, WHITE_PIECE, true);
     
     move.StartSquare = b8;
     move.EndSquare   = c6;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, BLACK_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, BLACK_PIECE, true);
     
     move.StartSquare = e1;
     move.EndSquare   = c1;
-    isMoveLegal = isMoveLegal && BoardIsMoveLegal(&board, move, WHITE_PIECE, true);
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, WHITE_PIECE, true);
     
     return isMoveLegal;
+}
+
+bool BoardCheckmateIterator()
+{
+    Board board;
+    bool  isCheckmated;
+    BoardZeroInit(&board);
+    
+    
+    board.White.King  = g1;
+    board.White.Rooks = a8;
+    board.Black.King  = g8;
+    board.Black.Pawns = f7 | g7 | h7;
+    
+    isCheckmated = BoardCheckmated(&board.White, &board.Black);
+    
+    return (isCheckmated == true);
+}
+
+bool BoardKnightCheckmate()
+{
+    Board board;
+    bool  isCheckmated;
+    BoardZeroInit(&board);
+    
+    
+    board.White.King  = g1;
+    board.White.Knights = f7;
+    board.Black.King  = h8;
+    board.Black.Rooks = g8;
+    board.Black.Pawns = g7 | h7;
+    
+    isCheckmated = BoardCheckmated(&board.White, &board.Black);
+    
+    return (isCheckmated == true);
+}
+
+bool BoardFoolsMate()
+{
+    Board board;
+    bool  isCheckmated;
+    bool  isMoveLegal;
+    BoardInit(&board);
+    
+    
+    Move move;
+    move.StartSquare = e2;
+    move.EndSquare   = e4;
+    
+    isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = f7;
+    move.EndSquare = f6;
+    isMoveLegal = BoardAttemptMove(&board, move, BLACK_PIECE, true);
+
+    move.StartSquare = d2;
+    move.EndSquare = d4;
+    isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = g7;
+    move.EndSquare = g5;
+    isMoveLegal = BoardAttemptMove(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = d1;
+    move.EndSquare = h5;
+    isMoveLegal = isMoveLegal && BoardAttemptMove(&board, move, WHITE_PIECE, true);
+    
+    isCheckmated = BoardCheckmated(&board.White, &board.Black);
+    
+    return (isCheckmated == true);
+}
+
+bool BoardPromotedQueen()
+{
+    Board board;
+    bool  isCheckmated;
+    bool  isMoveLegal;
+    BoardInit(&board);
+    
+    
+    Move move;
+    move.StartSquare = e2;
+    move.EndSquare   = e4;
+    
+    isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = f7;
+    move.EndSquare = f5;
+    isMoveLegal = BoardAttemptMove(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = e4;
+    move.EndSquare = f5;
+    isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = g7;
+    move.EndSquare = g6;
+    isMoveLegal = BoardAttemptMove(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = f5;
+    move.EndSquare = g6;
+    isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = b8;
+    move.EndSquare = c6;
+    isMoveLegal = BoardAttemptMove(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = g6;
+    move.EndSquare = g7;
+    isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = c6;
+    move.EndSquare = b4;
+    isMoveLegal = BoardAttemptMove(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = g7;
+    move.EndSquare = h8;
+    isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, true);
+    
+    move.StartSquare = d7;
+    move.EndSquare = d6;
+    isMoveLegal = BoardAttemptMove(&board, move, BLACK_PIECE, true);
+    
+    move.StartSquare = h8;
+    move.EndSquare = c3;
+    isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, true);
+    
+    DebugBoard(&board);
+    return (isMoveLegal == true);
 }
 
 bool PerfSimpleGamePerf()
@@ -443,14 +585,60 @@ bool PerfSimpleGamePerf()
     return isPerfGood;
 }
 
+bool PerfCheckmateIterator()
+{
+    clock_t start;
+    double  duration;
+    bool    isPerfGood;
+    
+    start = clock();
+    BoardCheckmateIterator();
+    duration = (clock() - start) / (double)CLOCKS_PER_SEC;
+    
+    isPerfGood = ((duration - (double)0.000020) <= (double)0.000001);
+    
+    if (isPerfGood == false)
+    {
+        cout << YELLOW << "    Baseline" << WHITE << ": " << "20μs" << endl;
+        cout << YELLOW << "    Result  " << WHITE << ": " << duration * 1000000 << "μs" << endl;
+        cout << YELLOW << "    Delta   " << WHITE << ": +" << (duration - (double)0.000020) * 1000000 << "μs" << endl;
+    }
+
+    
+    return isPerfGood;
+}
+
+bool PerfCheckmateFoolsMate()
+{
+    clock_t start;
+    double  duration;
+    bool    isPerfGood;
+    
+    start = clock();
+    BoardFoolsMate();
+    duration = (clock() - start) / (double)CLOCKS_PER_SEC;
+    
+    isPerfGood = ((duration - (double)0.000280) <= (double)0.000001);
+    
+    if (isPerfGood == false)
+    {
+        cout << YELLOW << "    Baseline" << WHITE << ": " << "280μs" << endl;
+        cout << YELLOW << "    Result  " << WHITE << ": " << duration * 1000000 << "μs" << endl;
+        cout << YELLOW << "    Delta   " << WHITE << ": +" << (duration - (double)0.000280) * 1000000 << "μs" << endl;
+    }
+    
+    
+    return isPerfGood;
+}
+
 bool (*PawnTests[])() = {PawnsFirstMove, PawnsFirstMoveBlocking, PawnMiddleGame, PawnEdgeAttacks, PawnEnPassantWhite, PawnEnPassantBlack};
 bool (*KnightTests[])() = {KnightMovement, KnightEdge, KnightZeroKnights};
-bool (*RookTests[])() = {RookMovement, RookCapture, RookEmptyBoard, RookMultipleRooks, RookMiddleGame};
+bool (*RookTests[])() = {RookMovement, RookCapture, RookEmptyBoard, RookMultipleRooks, RookMiddleGame, RookHorizontalAttack};
 bool (*BishopTests[])() = {BishopMovement, BishopCapture, BishopMultipleBishops};
 bool (*QueenTests[])() = {QueenMovement, QueenMultipleQueens, QueenMultipleCapture};
 bool (*KingTests[])() = {KingMovement, KingIsCheckmated, KingCastle,};
-bool (*BoardTests[])() = {BoardFirstMove, BoardPieceCollision, BoardSimplePawnPush};
-bool (*PerfTests[])() = {PerfSimpleGamePerf};
+bool (*BoardTests[])() = {BoardFirstMove, BoardPieceCollision, BoardSimplePawnPush, BoardCheckmateIterator, BoardKnightCheckmate, BoardFoolsMate, /*BoardPromotedQueen*/};
+bool (*PerfTests[])() = {PerfSimpleGamePerf, PerfCheckmateIterator, PerfCheckmateFoolsMate};
 
 void TestIterator(bool (*UnitTest[])(), UInt64 Count, string Description = "")
 {
