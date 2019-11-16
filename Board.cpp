@@ -609,29 +609,35 @@ UInt64 (*BoardGetPieceMoveCallbackEx(PieceType PieceType))(Pieces*, Pieces*)
     - UInt64 LegalMoves. The legal moves for the piece at PieceLocation
     - UInt64 PieceLocation. The square the piece is located on the board
     - PieceType MovingSidePieceType. The kind of piece being moved.
+    - (Pieces*, Pieces*) -> GameResult. The function checking the desired game result.
  Return:
-    bool - True if A has checkmated B, false
-           otherwise.
+     GameResult - Checks the current status of the board.
+                 The results can be:
+                 0x0 = Progressing
+                 0x1 = A has Checkmated B
+                 0x2 = A has drawn B. (Includes stalemate)
  Note:
-    This is a helper function for BoardCheckmated. This function
+    This is a helper function for BoardGameStatus. This function
     iterates through all the moves for the piece at PieceLocation.
-    It then validates if this moves stop B from being in check.
+    It then calls the GameResultCallback to see if it analysis should
+    continue or stop.
  */
-bool BoardPieceHasLegalMovesEx(Pieces* A,
+GameResult BoardPieceHasLegalMovesEx(Pieces* A,
                                Pieces* B,
                                UInt64 LegalMoves,
                                UInt64 PieceLocation,
-                               PieceType MovingSidePieceType)
+                               PieceType MovingSidePieceType,
+                               GameResult (*GameResultCallback)(Pieces*, Pieces*))
 {
-    Move   move;
-    bool   bIsCheckmated;
+    Move move;
+    GameResult gameProgress;
     UInt64 endSquare;
     UInt64 attackedSquares;
     PieceType nonMovingPieceType;
     Pieces nonMovingSide, movingSide;
     
-    bIsCheckmated = true;
-    endSquare = a1;
+    gameProgress = Unknown;
+    endSquare  = a1;
     move.StartSquare = PieceLocation;
     
     memcpy(&movingSide, B, sizeof(Pieces));
@@ -646,10 +652,10 @@ bool BoardPieceHasLegalMovesEx(Pieces* A,
         
         BoardCompleteMoveEx(&movingSide, MovingSidePieceType, &nonMovingSide, nonMovingPieceType, move);
         
-        // See if the attacked king is still in check
-        if (PiecesIsKingInCheck(&movingSide, &nonMovingSide) == false)
+        // Get the result from the passed in callback
+        gameProgress = GameResultCallback(&movingSide, &nonMovingSide);
+        if (gameProgress == Progressing)
         {
-            bIsCheckmated = false;
             goto End;
         }
         
@@ -660,7 +666,7 @@ bool BoardPieceHasLegalMovesEx(Pieces* A,
         endSquare = BoardFindNextMoveEx(LegalMoves, endSquare);
     }
 End:
-    return bIsCheckmated;
+    return gameProgress;
 }
 
 /*
@@ -669,22 +675,24 @@ End:
     - Pieces* A. Pieces for attacking side
     - Pieces* B. Pieces for attacked side
     - PieceType. The kind of piece B will move to see if legal
+    - (Pieces*, Pieces*) -> GameResult. The function checking the desired game result.
  Return:
-    bool - True if A has checkmated B, false
-           otherwise.
+ GameResult - Checks the current status of the board.
+              The results can be:
+              0x0 = Progressing
+              0x1 = A has Checkmated B
+              0x2 = A has drawn B. (Includes stalemate)
  Note:
-    This is a helper function for BoardCheckmated. This function
+    This is a helper function for BoardGameStatus. This function
     iterates through all the pieces for a given PieceType and then
     iterates through each of their moves to see if legal.
  */
-bool BoardPieceTypeHasLegalMovesEx(Pieces* A, Pieces* B, PieceType PieceType)
+GameResult BoardPieceTypeHasLegalMovesEx(Pieces* A, Pieces* B, PieceType PieceType, GameResult (*GameResultCallback)(Pieces*, Pieces*))
 {
     UInt64 startSquare = a1;
     UInt64 pieceLocation, legalMoves;
     UInt64 (*PieceMoveCallback)(Pieces*, Pieces*);
-    bool   isBCheckmated;
-    
-    isBCheckmated = true;
+    GameResult gameProgress = Unknown;
     
     // While there are still pieces of this piece type
     // get that piece location and the routine for finding its moves.
@@ -699,8 +707,8 @@ bool BoardPieceTypeHasLegalMovesEx(Pieces* A, Pieces* B, PieceType PieceType)
     
     while (pieceLocation != NO_SQUARE)
     {
-        isBCheckmated = BoardPieceHasLegalMovesEx(A, B, legalMoves, pieceLocation, PieceType);
-        if (isBCheckmated == false)
+        gameProgress = BoardPieceHasLegalMovesEx(A, B, legalMoves, pieceLocation, PieceType, GameResultCallback);
+        if (gameProgress == Progressing)
         {
             goto End;
         }
@@ -710,7 +718,74 @@ bool BoardPieceTypeHasLegalMovesEx(Pieces* A, Pieces* B, PieceType PieceType)
     }
     
 End:
-    return isBCheckmated;
+    return gameProgress;
+}
+
+/*
+ Function: BoardGameStatus
+ Parameters:
+    - Pieces* A. Pieces for attacking side
+    - Pieces* B. Pieces for attacked side
+    - (Pieces*, Pieces*) -> GameResult. The function checking the desired game result.
+ Return:
+    GameResult - Checks the current status of the board.
+                 The results can be:
+                 0x0 = Progressing
+                 0x1 = A has Checkmated B
+                 0x2 = A has drawn B. (Includes stalemate)
+ 
+ Note:
+    This function is fairly expensive; avoid calling it frequently.
+    Draws are stalemates, one minor piece two kings, two knights two kings.
+    Repetition draws are not detected within this function.
+ 
+ */
+GameResult BoardGameStatus(Pieces* A, Pieces* B, GameResult (*GameResultCallback)(Pieces*, Pieces*))
+{
+    GameResult gameProgress = Unknown;
+    
+    // Iterate through all the moves B and re-evaluate the board
+    // with the passed callback
+    for (UInt64 pieceType = KING; pieceType > NONE; pieceType--)
+    {
+        gameProgress = BoardPieceTypeHasLegalMovesEx(A, B, (PieceType)pieceType, GameResultCallback);
+        if (gameProgress == Progressing)
+        {
+            goto End;
+        }
+    }
+    
+End:
+    return gameProgress;
+}
+
+
+/*
+ Function: BoardIsKingCheckmatedEx
+ Parameters:
+ - Pieces* A. Pieces for attacking side
+ - Pieces* B. Pieces for attacked side
+ Return:
+    GameResult - Checkmated if current pieces are in a stalemated position.
+    Progressing otherwise.
+ Note:
+    This is a helper callback for BoardCheckmated function.
+ */
+GameResult BoardIsKingCheckmatedEx(Pieces* A, Pieces* B)
+{
+    bool checkResult = PiecesIsKingInCheck(A, B);
+    GameResult gameResult = Unknown;
+    
+    if (checkResult == true)
+    {
+        gameResult = Checkmated;
+    }
+    else
+    {
+        gameResult = Progressing;
+    }
+    
+    return gameResult;
 }
 
 /*
@@ -720,40 +795,130 @@ End:
     - Pieces* B. Pieces for attacked side
  Return:
     bool - True if A has checkmated B, false
-           otherwise.
+    otherwise.
  Note:
     This function is fairly expensive.
     Avoid calling it frequently.
  */
 bool BoardCheckmated(Pieces* A, Pieces* B)
 {
-    bool bIsCheckmated = true;
-    
-    // Check if B is being checked
+    // Quick check to see if B king is in check
+    // before continuing with analysis
     if (PiecesIsKingInCheck(B, A) == false)
     {
-        // B is not checked. Exit
-        bIsCheckmated = false;
-        goto End;
+        return false;
     }
     
-    // Iterate through all the moves B has,
-    // and re-evaluate the board. And if B
-    // has no legal moves to escape check,
-    // B has been checkmated.
-    for (UInt64 pieceType = KING; pieceType > NONE; pieceType--)
-    {
-        bIsCheckmated = BoardPieceTypeHasLegalMovesEx(A, B, (PieceType)pieceType);
-        if (bIsCheckmated == false)
-        {
-            goto End;
-        }
-    }
-    
-End:
-    return bIsCheckmated;
+    return BoardGameStatus(A, B, BoardIsKingCheckmatedEx);
 }
 
+/*
+ Function: BoardIsKingStalematedEx
+ Parameters:
+    - Pieces* A. Pieces for attacking side
+    - Pieces* B. Pieces for attacked side
+ Return:
+    GameResult - Stalemated if current pieces are in a stalemated position.
+                 Progressing otherwise.
+ Note:
+    This is a helper callback for BoardStalemated function.
+ */
+GameResult BoardIsKingStalematedEx(Pieces* A, Pieces* B)
+{
+    bool checkResult = PiecesIsKingInCheck(A, B);
+    GameResult gameResult = Unknown;
+    
+    if (checkResult == true)
+    {
+        gameResult = Stalemated;
+    }
+    else
+    {
+        gameResult = Progressing;
+    }
+    
+    return gameResult;
+}
+
+/*
+ Function: BoardStalemate
+ Parameters:
+    - Pieces* A. Pieces for attacking side
+    - Pieces* B. Pieces for attacked side
+ Return:
+    bool - True if A has stalemated B, false
+    otherwise.
+ Note:
+ */
+bool BoardStalemated(Pieces* A, Pieces* B)
+{
+    // Quick check to see if current king is in check
+    // If so, stalemate is not possible.
+    if (PiecesIsKingInCheck(B, A) == true)
+    {
+        return false;
+    }
+    
+    return BoardGameStatus(A, B, BoardIsKingStalematedEx);
+}
+
+/*
+ Function: BoardIsMaterialDraw
+ Parameters:
+    - Pieces* A. Pieces for attacking side
+    - Pieces* B. Pieces for attacked side
+ Return:
+    bool - True if the board is a draw, false otherwise
+ Note:
+    Material draws are:
+        - W_King, B_King,
+        - W_King, B_King, W_Minor Piece
+        - W_King, B_King, W_Knight, W_Knight
+        - W_King, B_King, W_Knight x 2, B_Knight x 2
+ */
+bool BoardIsMaterialDraw(Pieces* A, Pieces* B)
+{
+    bool materialDraw = false;
+    bool majorMaterialAdv = (A->Pawns != 0 || B->Pawns != 0 ||
+                             A->Rooks != 0 || B->Rooks != 0 ||
+                             A->Queen != 0 || B->Queen != 0);
+    UInt64 aKnightCount, bKnightCount, aBishopCount, bBishopCount = 0;
+    
+    if (majorMaterialAdv == true)
+    {
+        return materialDraw;
+    }
+    
+    aKnightCount = BitCount(A->Knights);
+    bKnightCount = BitCount(B->Knights);
+    aBishopCount = !!BitCount((A->Bishops & WHITE_SQUARES)) +
+                   !!BitCount((A->Bishops & BLACK_SQUARES));
+    bBishopCount = !!BitCount((B->Bishops & WHITE_SQUARES)) +
+                   !!BitCount((B->Bishops & BLACK_SQUARES));
+    
+    if (aKnightCount <= 2 && bKnightCount <= 2 &&
+        aBishopCount == 0 && bBishopCount == 0)
+    {
+        materialDraw = true;
+    }
+    else if (aKnightCount == 0 && bKnightCount == 0 &&
+             aBishopCount <= 1 && bBishopCount <= 1)
+    {
+        materialDraw = true;
+    }
+    else if (aKnightCount <= 2 && bKnightCount == 0 &&
+             aBishopCount == 0 && bBishopCount <= 1)
+    {
+        materialDraw = true;
+    }
+    else if (aKnightCount == 0 && bKnightCount <= 2 &&
+             aBishopCount <= 1 && bBishopCount == 0)
+    {
+        materialDraw = true;
+    }
+    
+    return materialDraw;
+}
 
 /*
  Function: DebugBoard
@@ -766,7 +931,6 @@ End:
 void DebugBoard(Board* board)
 {
     Pieces  white, black;
-    bool firstPrint = true;
     
     white = board->White;
     black = board->Black;

@@ -563,6 +563,54 @@ bool BoardPromotedQueen()
     return (isMoveLegal == true);
 }
 
+bool BoardStalemate()
+{
+    Board board;
+    bool  isStalemated;
+    BoardZeroInit(&board);
+    
+    
+    board.White.King  = e6;
+    board.Black.King  = e8;
+    board.White.Pawns = e7;
+    
+    isStalemated = BoardStalemated(&board.White, &board.Black);
+    
+    return (isStalemated == true);
+}
+
+bool BoardNotStalemate()
+{
+    Board board;
+    bool  isStalemated;
+    BoardZeroInit(&board);
+    
+    
+    board.White.King  = f1;
+    board.Black.King  = h8;
+    board.White.Rooks = g1 | b6;
+    
+    isStalemated = BoardStalemated(&board.White, &board.Black);
+    
+    return (isStalemated == false);
+}
+
+bool BoardMateralDraw()
+{
+    Board board;
+    BoardZeroInit(&board);
+    bool isDraw;
+    
+    board.White.King = e4;
+    board.Black.King = c5;
+    board.White.Knights = a1;
+    board.Black.Bishops = c1 | d2;
+    
+    isDraw = BoardIsMaterialDraw(&board.White, &board.Black);
+    
+    return (isDraw == true);
+}
+
 bool PerfSimpleGamePerf()
 {
     clock_t start;
@@ -637,7 +685,7 @@ bool (*RookTests[])() = {RookMovement, RookCapture, RookEmptyBoard, RookMultiple
 bool (*BishopTests[])() = {BishopMovement, BishopCapture, BishopMultipleBishops};
 bool (*QueenTests[])() = {QueenMovement, QueenMultipleQueens, QueenMultipleCapture};
 bool (*KingTests[])() = {KingMovement, KingIsCheckmated, KingCastle,};
-bool (*BoardTests[])() = {BoardFirstMove, BoardPieceCollision, BoardSimplePawnPush, BoardCheckmateIterator, BoardKnightCheckmate, BoardFoolsMate, /*BoardPromotedQueen*/};
+bool (*BoardTests[])() = {BoardFirstMove, BoardPieceCollision, BoardSimplePawnPush, BoardCheckmateIterator, BoardKnightCheckmate, BoardFoolsMate, /*BoardPromotedQueen*/ BoardStalemate, BoardNotStalemate, BoardMateralDraw};
 bool (*PerfTests[])() = {PerfSimpleGamePerf, PerfCheckmateIterator, PerfCheckmateFoolsMate};
 
 void TestIterator(bool (*UnitTest[])(), UInt64 Count, string Description = "")

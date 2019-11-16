@@ -350,6 +350,11 @@ UInt64 PiecesKnightMove(Pieces* A, Pieces* B)
     UInt64 aPLocation = Union(A);
     UInt64 knights = A->Knights;
     
+    if (knights == 0)
+    {
+        return 0;
+    }
+    
     aMoves = (Intersect(knights << 17, FILE_A) |
               Intersect(knights << 10, FILE_A | FILE_B) |
               Intersect(knights >> 6,  FILE_A | FILE_B) |
