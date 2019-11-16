@@ -14,6 +14,38 @@ inline UInt64 Mirror(UInt64 x)
     return x;
 }
 
+UInt64 BitCount(UInt64 x)
+{
+    UInt64 lsbb   = 0x1111111111111111;
+    
+    UInt64 mask   = 0xF0F;
+    UInt64 count  = 0;
+    UInt64 sum, usum, lsum = 0;
+    
+    if (x == 0)
+    {
+        return 0;
+    }
+    
+    sum  = lsbb & x;
+    sum += lsbb & (x >> 1);
+    sum += lsbb & (x >> 2);
+    sum += lsbb & (x >> 3);
+    
+    lsum = (sum >> 32);
+    usum = (sum << 32) >> 32;
+    
+    lsum   = lsum + (lsum >> 16);
+    lsum   = ((lsum & mask) + (mask & (lsum >> 4)));
+    count  = (((lsum >> 8) + lsum) & 0x3F);
+    
+    usum   = usum + (usum >> 16);
+    usum   = ((usum & mask) + (mask & (usum >> 4)));
+    count += (((usum >> 8) + usum) & 0x3F);
+    
+    return count;
+}
+
 void DebugBoard(UInt64 board)
 {
     board = Flip(board);

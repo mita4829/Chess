@@ -98,7 +98,6 @@ typedef uint64_t UInt64;
 #define g8 0x4000000000000000
 #define h8 0x8000000000000000
 
-extern UInt64 ReverseMap[256];
 extern UInt64 Rank[8];
 extern UInt64 File[8];
 
@@ -140,6 +139,7 @@ struct Move {
 };
 
 UInt64 FlipBoard(UInt64 board);
+UInt64 BitCount(UInt64);
 void DebugBoard(UInt64);
 
 #endif // FOUNDATION_HPP
