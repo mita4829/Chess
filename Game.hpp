@@ -3,7 +3,6 @@
 
 #include "Board.hpp"
 
-void GamePlayAlone();
-void GameSetupBoard(string filename);
+void StartMenu();
 
 #endif

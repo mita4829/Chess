@@ -559,7 +559,7 @@ bool BoardPromotedQueen()
     move.EndSquare = c3;
     isMoveLegal = BoardAttemptMove(&board, move, WHITE_PIECE, true);
     
-    DebugBoard(&board);
+    BoardPrint(&board);
     return (isMoveLegal == true);
 }
 

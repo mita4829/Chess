@@ -2,12 +2,12 @@
 
 void GamePrintInfo(string message)
 {
-    cout << GREEN << "Chess" << WHITE << ": " << message << endl;
+    cout << GREEN << "Chess" << WHITE << ": " << message;
 }
 
 void GamePrintError(string message)
 {
-    cout << RED << "Error" << WHITE << ": " << message << endl;
+    cout << RED << "Error" << WHITE << ": " << message;
 }
 
 bool ParseMove(Move* Move, string fromSquare, string endSquare)
@@ -77,30 +77,73 @@ End:
     return isMoveValid;
 }
 
+GameResult GameGetGameResult(Board* board, UInt64 Color)
+{
+    GameResult gameResult = Progressing;
+    bool boardState = false;
+    Pieces* attackingSide, *nonAttackingSide;
+    
+    if (Color == WHITE_PIECE)
+    {
+        attackingSide    = &board->White;
+        nonAttackingSide = &board->Black;
+    }
+    else
+    {
+        attackingSide    = &board->Black;
+        nonAttackingSide = &board->White;
+    }
+
+    boardState = BoardCheckmated(attackingSide, nonAttackingSide);
+    if (boardState == true)
+    {
+        gameResult = Checkmated;
+        goto End;
+    }
+    
+    boardState = BoardIsMaterialDraw(attackingSide, nonAttackingSide);
+    if (boardState == true)
+    {
+        gameResult = Draw;
+        goto End;
+    }
+    
+    boardState = BoardStalemated(attackingSide, nonAttackingSide);
+    if (boardState == true)
+    {
+        gameResult = Stalemated;
+        goto End;
+    }
+    
+End:
+    return gameResult;
+}
+
 void GamePlayAlone()
 {
     string userInput;
-    string startSquare, endSquare;
+    string startSquare, endSquare, winner;
     Move   move;
     UInt64 color = WHITE_PIECE;
     
     Board board;
     BoardInit(&board);
-    bool isSideCheckmated  = false;
+    GameResult gameResult = Progressing;
     bool isMoveLegal = false;
     
-    while (isSideCheckmated == false)
+    while (gameResult == Progressing)
     {
+        cout << endl;
         if (color == WHITE_PIECE)
         {
-            GamePrintInfo("White's move");
+            GamePrintInfo("White's move\n");
         }
         else
         {
-            GamePrintInfo("Black's move");
+            GamePrintInfo("Black's move\n");
         }
         
-        DebugBoard(&board);
+        BoardPrint(&board);
         cout << "Start Square: ";
         getline(cin, startSquare);
         cout << "End Square  : ";
@@ -115,30 +158,60 @@ void GamePlayAlone()
         isMoveLegal = BoardAttemptMove(&board, move, color, true);
         if (isMoveLegal == false)
         {
-            string message = "Cannot move " + startSquare + " to " + endSquare;
+            string message = "Cannot move " + startSquare + " to " + endSquare + "\n";
             GamePrintError(message);
             continue;
         }
         
+        gameResult = GameGetGameResult(&board, color);
         if (color == WHITE_PIECE)
         {
-            isSideCheckmated = BoardCheckmated(&board.White, &board.Black);
             color = BLACK_PIECE;
         }
         else
         {
-            isSideCheckmated = BoardCheckmated(&board.Black, &board.White);
             color = WHITE_PIECE;
         }
+        cout << endl;
     }
     
-    DebugBoard(&board);
-    if (color == BLACK_PIECE)
+    BoardPrint(&board);
+    if (color == WHITE_PIECE)
     {
-        GamePrintInfo("White won by checkmate!");
+        winner = "Black";
     }
     else
     {
-        GamePrintInfo("Black won by checkmate!");
+        winner = "White";
+    }
+    
+    switch (gameResult) {
+        case Checkmated:
+            winner = winner + " won by checkmate!\n";
+            GamePrintInfo(winner);
+            break;
+        case Stalemated:
+            GamePrintInfo("Draw!");
+        default:
+            GamePrintError("Unknown game result.\n");
+            break;
+    }
+}
+
+void StartMenu()
+{
+    cout << BLUE << " ===========================" << WHITE << endl;
+    cout << BLUE << " *     Chess Beta v1.0     *" << WHITE << endl;
+    cout << BLUE << " ===========================" << WHITE << endl;
+    string userInput = "";
+    
+    while (userInput != "E")
+    {
+        GamePrintInfo("Play Alone (A), Exit (E): ");
+        getline(cin, userInput);
+        if (userInput == "A")
+        {
+            GamePlayAlone();
+        }
     }
 }

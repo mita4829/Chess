@@ -27,7 +27,7 @@ bool BoardCheckmated(Pieces* A, Pieces* B);
 bool BoardStalemated(Pieces* A, Pieces* B);
 bool BoardIsMaterialDraw(Pieces* A, Pieces* B);
 
-void DebugBoard(Board* board);
+void BoardPrint(Board* board);
 bool BoardCompare(Board* A, Board* B);
 
 #endif // BOARD_HPP

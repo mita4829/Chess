@@ -409,7 +409,6 @@ bool BoardAttemptMove(Board* Board, Move Move, UInt64 Color, bool ReturnPosition
     if (movingPieceType == NONE)
     {
         // Trying to move a piece on a square that color does not have.
-        Debug("(1)");
         isMoveLegal = false;
         goto End;
     }
@@ -420,7 +419,6 @@ bool BoardAttemptMove(Board* Board, Move Move, UInt64 Color, bool ReturnPosition
     isMoveLegal = BoardCheckMoveIsLegalByPieceEx(&movingSide, &nonMovingSide, movingPieceType, Move);
     if (isMoveLegal != true)
     {
-        Debug("(2)");
         goto End;
     }
     
@@ -438,7 +436,6 @@ bool BoardAttemptMove(Board* Board, Move Move, UInt64 Color, bool ReturnPosition
     if (movingSide.King & attackedSquares)
     {
         // King is in check, previous move is not legal
-        Debug("(3)");
         isMoveLegal = false;
         goto End;
     }
@@ -924,14 +921,14 @@ bool BoardIsMaterialDraw(Pieces* A, Pieces* B)
 }
 
 /*
- Function: DebugBoard
+ Function: BoardPrint
  Parameters:
-    - Pieces* A. Board obj
+    - Board* board. Board object
  Return:
  Notes:
     This function prints out the board to stdio
  */
-void DebugBoard(Board* board)
+void BoardPrint(Board* board)
 {
     Pieces  white, black;
     
@@ -943,7 +940,6 @@ void DebugBoard(Board* board)
     UInt64 square;
     for (UInt64 i = 0; i < 8; i++)
     {
-        cout << endl;
         cout << BLUE << rank << " " << WHITE;
         rank--;
         
@@ -1005,8 +1001,8 @@ void DebugBoard(Board* board)
             }
         }
         rankIndex >>= 8;
+        cout << endl;
     }
-    cout << endl;
     cout << BLUE << "  A B C D E F G H" << WHITE << endl;
 }
 
