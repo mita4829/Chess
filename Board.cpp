@@ -921,14 +921,14 @@ bool BoardIsMaterialDraw(Pieces* A, Pieces* B)
 }
 
 /*
- Function: DebugBoard
+ Function: BoardPrint
  Parameters:
-    - Pieces* A. Board obj
+    - Board* board. Board object
  Return:
  Notes:
     This function prints out the board to stdio
  */
-void DebugBoard(Board* board)
+void BoardPrint(Board* board)
 {
     Pieces  white, black;
     
@@ -940,7 +940,6 @@ void DebugBoard(Board* board)
     UInt64 square;
     for (UInt64 i = 0; i < 8; i++)
     {
-        cout << endl;
         cout << BLUE << rank << " " << WHITE;
         rank--;
         
@@ -1002,8 +1001,8 @@ void DebugBoard(Board* board)
             }
         }
         rankIndex >>= 8;
+        cout << endl;
     }
-    cout << endl;
     cout << BLUE << "  A B C D E F G H" << WHITE << endl;
 }
 
